@@ -22,6 +22,7 @@ cd same_filtration_but_using_bcftools/
 pref=${vcf%.*}
 
 #echo "bcftool filter..."
+# -S . for site saving
 bcftools filter  -o ${pref}.filt.vcf --exclude 'QUAL < 20.0 || (FORMAT/SP > 60.0 | FORMAT/DP < 5.0 | FORMAT/GQ < 20.0)' ../${vcf}
 
 fvcf=${pref}.filt.vcf
