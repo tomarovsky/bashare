@@ -21,10 +21,9 @@ done
 # script
 mkdir pseudosomal_region/
 cd pseudosomal_region/
-mv ../${file} .
 
-cat ${file} | awk '{ if ($1 == "'${scaf}'") print $0}' > ${file%_*_*_*}_chrscaf.csv
+cat ../${file} | awk '{ if ($1 == "'${scaf}'") print $0}' > ${file%_*_*_*}_chrscaf.csv
 
-~/tools/Biocrutch/scripts/genomecov/pseudoautosomal_region.py -i *_chrscaf.csv -m $(cat ../*_whole_genome_stats.csv | sed -n 2p | awk '{print $2}') -o ${file%_*_*_*} | tee ${file%_*_*_*}_pseudo.log
+python3 $TOOLS/Biocrutch/scripts/Coverage/pseudoautosomal_region.py -f 5000 -r 10 -i *_chrscaf.csv -m $(cat ../*_whole_genome_stats.csv | sed -n 2p | awk '{print $2}') -o ${file%_*_*_*} | tee ${file%_*_*_*}_pseudo.log
 
 cd -
