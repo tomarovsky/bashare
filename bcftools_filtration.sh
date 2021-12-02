@@ -16,7 +16,7 @@ while getopts 'i:' flag; do
 done
 
 # paths
-export PATH=${PATH}:/mnt/tank/scratch/atomarovsky/tools/bcftools-1.12/bin:/mnt/tank/scratch/atomarovsky/tools/parallel-20210622/bin:/mnt/tank/scratch/atomarovsky/tools/vcftools-0.1.16/bin
+# export PATH=${PATH}:/mnt/tank/scratch/atomarovsky/tools/bcftools-1.12/bin:/mnt/tank/scratch/atomarovsky/tools/parallel-20210622/bin:/mnt/tank/scratch/atomarovsky/tools/vcftools-0.1.16/bin
 
 # vcf prefix
 pref=${vcf%.*.*}
@@ -51,4 +51,4 @@ done
 rm tmp.list
 
 # Draw densities of heterozygous files
-# /home/atomarovsky/bashare/draw_densities_of_hetero.sh
+# $TOOLS/bashare/draw_densities_of_hetero.sh

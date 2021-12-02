@@ -13,7 +13,7 @@ Draws genomecov coverage.
 ```draw_densities_of_hetero.sh```
 Draws snps/indels coverage. 
 
-```Krater.sh -i <fastq_prefix>```
+```krater.sh -i <fastq_prefix>```
 Fastq file prefix (file name without .final_[12].fastq). The rest of the default parameters are.
 
 ```pseudosomal_region.sh -i <file *_10000_windows_stats name> -s <name of sex scaffold>```

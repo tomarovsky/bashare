@@ -22,4 +22,4 @@ while getopts 'i:m:s:t:' flag; do
 done
 
 # script
-python3 ~/tools/krater/scripts/jf/draw_kmer_distribution_from_fastq.py -i ${fastq_pref}.final_1.fastq,${fastq_pref}.final_2.fastq -o ${fastq_pref} -m ${m} -s ${s} -t ${t} -b
+python3 $TOOLS/krater/scripts/jf/draw_kmer_distribution_from_fastq.py -i ${fastq_pref}.final_1.fastq,${fastq_pref}.final_2.fastq -o ${fastq_pref} -m ${m} -s ${s} -t ${t} -b
