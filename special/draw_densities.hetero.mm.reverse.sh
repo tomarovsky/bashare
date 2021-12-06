@@ -13,7 +13,7 @@ while getopts '' flag; do
 done
 
 # paths
-assembly="../../../../../assemblies/hic/"
+assembly="../../../../assemblies/hic/"
 
 # script
 for file in *.SNPs.hetero.vcf; do
