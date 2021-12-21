@@ -18,10 +18,10 @@ done
 prefix=$(echo ${genomecov:10} | sed 's/\..*//')
 
 echo "whole genome stats..."
-$TOOLS/Biocrutch/scripts/genomecov/coverage_statistics.py -i ${genomecov} -g -o ${prefix}
+$TOOLS/Biocrutch/scripts/Coverage/coverage_statistics.py -i ${genomecov} -g -o ${prefix}
 echo "scaffolds stats..."
-$TOOLS/Biocrutch/scripts/genomecov/coverage_statistics.py -i ${genomecov} -s -o ${prefix}
+$TOOLS/Biocrutch/scripts/Coverage/coverage_statistics.py -i ${genomecov} -s -o ${prefix}
 echo "nonoverlapping windows stats..."
-$TOOLS/Biocrutch/scripts/genomecov/coverage_statistics.py -i ${genomecov} -n -f 1000000 -o ${prefix}
-$TOOLS/Biocrutch/scripts/genomecov/coverage_statistics.py -i ${genomecov} -n -f 100000 -o ${prefix}
-$TOOLS/Biocrutch/scripts/genomecov/coverage_statistics.py -i ${genomecov} -n -f 10000 -o ${prefix}  
+$TOOLS/Biocrutch/scripts/Coverage/coverage_statistics.py -i ${genomecov} -n -f 1000000 -o ${prefix}
+$TOOLS/Biocrutch/scripts/Coverage/coverage_statistics.py -i ${genomecov} -n -f 100000 -o ${prefix}
+$TOOLS/Biocrutch/scripts/Coverage/coverage_statistics.py -i ${genomecov} -n -f 10000 -o ${prefix}  
