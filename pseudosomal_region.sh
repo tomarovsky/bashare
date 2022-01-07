@@ -30,6 +30,6 @@ mkdir PAR/; cd PAR/;
 
 cat ../${file} | awk '{ if ($1 == "'${scafname}'") print $0}' > ${file%_*_*_*}_chrscaf.csv
 
-python3 $TOOLS/Biocrutch/scripts/PAR/pseudoautosomal_region.py -f ${window} -i *_chrscaf.csv -s ${scafname} -m $(cat ${whole_genome_stats} | sed -n 2p | awk '{print $2}') -o ${file%_*_*_*} | tee ${file%_*_*_*}_pseudo.log
+python3 $TOOLS/Biocrutch/scripts/PAR/pseudoautosomal_region.py -f ${window} -i *_chrscaf.csv -s ${scafname} -m $(cat ../${whole_genome_stats} | sed -n 2p | awk '{print $2}') -o ${file%_*_*_*} | tee ${file%_*_*_*}_pseudo.log
 
 cd -
