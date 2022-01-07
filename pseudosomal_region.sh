@@ -14,7 +14,7 @@ print_usage() {
 
 }
 
-while getopts 'i:s:w:' flag; do
+while getopts 'i:s:w:g:' flag; do
 	case "${flag}" in
 		s) scafname="${OPTARG}" ;;
 		i) file="${OPTARG}" ;;
