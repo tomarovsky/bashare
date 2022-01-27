@@ -1,7 +1,7 @@
 #!/bin/bash
 
 print_usage() {
-	echo "Creating files for genome vizualization." 
+	echo "Creating files for genome vizualization."
 	echo "run script in bcftools_filtration folder"
 }
 
