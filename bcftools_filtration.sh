@@ -1,22 +1,25 @@
 #!/bin/bash
 
+VARCALL="/mnt/tank/scratch/skliver/common/mustelidae/martes_martes/genome/varcall/hic.purged/bcftools/"
 BWA_ALIGNMENT="/mnt/tank/scratch/skliver/common/mustelidae/martes_martes/genome/alignment/hic.purged/bwa_alignment"
 VCF="mmar.allsamples.vcf.gz"
 PREFIX=${VCF%.*.*}
 
 #---- script ----
+cd ${VARCALL}
 mkdir bcftools_filtration/
 cd bcftools_filtration/
 
 echo "VCF filtration"
-bcftools filter -S . -O v -o ${PREFIX}.filt.vcf --exclude 'QUAL < 20.0 || (FORMAT/SP > 60.0 | FORMAT/DP < 5.0 | FORMAT/GQ < 20.0)' ../${VCF}
+bcftools filter -S . -O v -o ${PREFIX}.filt.vcf --exclude 'QUAL < 20.0 || (FORMAT/SP > 60.0 || FORMAT/DP < 5.0 || FORMAT/GQ < 20.0)' ../${VCF}
 
 echo "Sample separation"
 touch samples.tmp
 for SAMPLE in `bcftools query -l ${PREFIX}.filt.vcf`; do
 	echo "Sample: ${SAMPLE}";
-	vcf-subset --exclude-ref -c ${SAMPLE} ${PREFIX}.filt.vcf > ${SAMPLE}.${PREFIX}.filt.vcf;
-	bedtools intersect -header -v -a ${SAMPLE}.${PREFIX}.filt.vcf -b ${BWA_ALIGNMENT}/${SAMPLE}/${SAMPLE}.mmar.hic.purged.mkdup.per-base.bed.gz.max250.min33 > ${SAMPLE}.${PREFIX}.filt.masked.vcf
+	#vcf-subset --exclude-ref -c ${SAMPLE} ${PREFIX}.filt.vcf > ${SAMPLE}.${PREFIX}.filt.vcf;
+	bcftools view --threads 4 --with-header -s ${SAMPLE} -O v -o ${SAMPLE}.${PREFIX}.filt.vcf ${PREFIX}.filt.vcf;
+	bedtools intersect -header -v -a ${SAMPLE}.${PREFIX}.filt.vcf -b ${BWA_ALIGNMENT}/${SAMPLE}/${SAMPLE}.mmar.hic.purged.mkdup.mapq10.per-base.bed.gz.max250.min33 > ${SAMPLE}.${PREFIX}.filt.masked.vcf
 	echo ${SAMPLE}.${PREFIX}.filt.masked.vcf >> samples.tmp;
 done
 
