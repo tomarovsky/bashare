@@ -1,9 +1,10 @@
 #!/bin/bash
 
-tabfile=''
+tool='mosdepth'
 
 print_usage() {
-	echo "Usage: '-i' your coverage.tab.gz file and use -t 'genomecov' or 'mosdepth'"
+	echo "Usage: '-i' your coverage.tab.gz file"
+	echo "'-t' to set 'genomecov' or 'mosdepth' (Default: 'mosdepth')"
 }
 
 while getopts 'i:t:' flag; do

@@ -17,7 +17,6 @@ echo "Sample separation"
 touch samples.tmp
 for SAMPLE in `bcftools query -l ${PREFIX}.filt.vcf`; do
 	echo "Sample: ${SAMPLE}";
-	#vcf-subset --exclude-ref -c ${SAMPLE} ${PREFIX}.filt.vcf > ${SAMPLE}.${PREFIX}.filt.vcf;
 	bcftools view --threads 4 --with-header -s ${SAMPLE} -O v -o ${SAMPLE}.${PREFIX}.filt.vcf ${PREFIX}.filt.vcf;
 	bedtools intersect -header -v -a ${SAMPLE}.${PREFIX}.filt.vcf -b ${BWA_ALIGNMENT}/${SAMPLE}/${SAMPLE}.mmar.hic.purged.mkdup.mapq10.per-base.bed.gz.max250.min33 > ${SAMPLE}.${PREFIX}.filt.masked.vcf
 	echo ${SAMPLE}.${PREFIX}.filt.masked.vcf >> samples.tmp;

@@ -33,6 +33,9 @@ echo "lengths file is done"
 # file.whitelist 
 cat ${PREFIX}.lengths | awk '{print $1}' > ${PREFIX}.whitelist
 echo "whitelist file is done"
+# file.orderedlist 
+cat ${PREFIX}.lengths | awk '{print $1}' > ${PREFIX}.orderedlist
+echo "orderedlist file is done"
 # file.syn 
 cat ${PREFIX}.whitelist | awk '{print $1"\t"$1}' > ${PREFIX}.syn
 echo "syn file is done"

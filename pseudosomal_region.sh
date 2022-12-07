@@ -1,35 +1,43 @@
 #!/bin/bash
 
-file=''
-scafname=''
-window=''
-whole_genome_stats=''
+WINDOW_SIZE='10000'
 
 print_usage() {
-	echo "Creating files for genome vizualization." 
+	echo "Script for PAR calculation" 
 	echo "'-s' sex scsffold name"
-	echo "'-i' file *_windows_stats name"
-	echo "'-w' window size in *_windows_stats file"
-	echo "'-g' *_whole_genome_stats file"
+	echo "'-i' mosdepth.per-base.bed.gz file"
+	echo "'-w' window size (default 10000)"
 
 }
 
-while getopts 'i:s:w:g:' flag; do
+while getopts 's:i:w:' flag; do
 	case "${flag}" in
-		s) scafname="${OPTARG}" ;;
-		i) file="${OPTARG}" ;;
-		w) window="${OPTARG}" ;;
-		g) whole_genome_stats="${OPTARG}" ;;
+		s) SCAFFOLD_NAME="${OPTARG}" ;;
+		i) MOSDEPTH_BEDGZ="${OPTARG}" ;;
+		w) WINDOW_SIZE="${OPTARG}" ;;
 		*) print_usage
 			exit 1 ;;
 	esac
 done
 
 # script
-mkdir PAR/; cd PAR/;
+PWD=$(pwd)
+echo "whole genome stats..."
+python3 $TOOLS/Biocrutch/scripts/Coverage/coverage_statistics.py -i ${MOSDEPTH_BEDGZ} --tool-name mosdepth -g -o ${MOSDEPTH_BEDGZ%.*.*.*}
+echo "whole genome stats... Done."
 
-cat ../${file} | awk '{ if ($1 == "'${scafname}'") print $0}' > ${file%_*_*_*}_chrscaf.csv
+mkdir ${PWD}/${MOSDEPTH_BEDGZ%.*.*.*}_PAR/; 
+cd ${PWD}/${MOSDEPTH_BEDGZ%.*.*.*}_PAR/;
 
-python3 $TOOLS/Biocrutch/scripts/PAR/pseudoautosomal_region.py -f ${window} -i *_chrscaf.csv -s ${scafname} -m $(cat ../${whole_genome_stats} | sed -n 2p | awk '{print $2}') -o ${file%_*_*_*} | tee ${file%_*_*_*}_pseudo.log
+zcat ../${MOSDEPTH_BEDGZ} | awk '{ if ($1 == "'${SCAFFOLD_NAME}'") print $0}' | gzip --stdout > ${MOSDEPTH_BEDGZ%.*.*}.chrX.bed.gz
 
-cd -
+echo "windows stats..."
+python3 $TOOLS/Biocrutch/scripts/Coverage/coverage_statistics.py -i ${MOSDEPTH_BEDGZ%.*.*}.chrX.bed.gz --tool-name mosdepth -n -f ${WINDOW_SIZE} -o ${MOSDEPTH_BEDGZ%.*.*}.chrX
+echo "windows stats... Done."
+
+sed -i '1,1d' ${MOSDEPTH_BEDGZ%.*.*}.chrX_${WINDOW_SIZE}_windows_stats.csv; # remove header 
+python3 $TOOLS/Biocrutch/scripts/PAR/pseudoautosomal_region.py -f ${WINDOW_SIZE} -i ${MOSDEPTH_BEDGZ%.*.*}.chrX_${WINDOW_SIZE}_windows_stats.csv -s ${SCAFFOLD_NAME} -m $(cat ../${MOSDEPTH_BEDGZ%.*.*.*}_whole_genome_stats.csv | sed -n 2p | awk '{print $2}') -o ${MOSDEPTH_BEDGZ%.*.*}.chrX | tee ${MOSDEPTH_BEDGZ%.*.*}.chrX_pseudo.log
+
+cd ../
+
+
