@@ -1,10 +1,9 @@
 #!/bin/bash
 
-tool='mosdepth'
+tabfile=''
 
 print_usage() {
-	echo "Usage: '-i' your coverage.tab.gz file"
-	echo "'-t' to set 'genomecov' or 'mosdepth' (Default: 'mosdepth')"
+	echo "Usage: '-i' your coverage.tab.gz file and use -t 'genomecov' or 'mosdepth'"
 }
 
 while getopts 'i:t:' flag; do
@@ -26,4 +25,3 @@ $TOOLS/Biocrutch/scripts/Coverage/coverage_statistics.py -i ${tabfile} --tool-na
 echo "nonoverlapping windows stats..."
 $TOOLS/Biocrutch/scripts/Coverage/coverage_statistics.py -i ${tabfile} --tool-name ${tool} -n -f 1000000 -o ${prefix}
 $TOOLS/Biocrutch/scripts/Coverage/coverage_statistics.py -i ${tabfile} --tool-name ${tool} -n -f 100000 -o ${prefix}
-$TOOLS/Biocrutch/scripts/Coverage/coverage_statistics.py -i ${tabfile} --tool-name ${tool} -n -f 10000 -o ${prefix}
