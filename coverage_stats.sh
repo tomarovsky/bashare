@@ -1,27 +1,19 @@
 #!/bin/bash
+# Usage:
+# ./coverage_stats.sh MOSDEPTH_BED
+# parallel -j 16 "./coverage_stats.sh {} > {...}.coverage_stats.log 2>&1" ::: *.per-base.bed.gz
+# parallel --results logs -j 16 "./coverage_stats.sh {} > {...}.coverage_stats.log 2>&1" ::: *.per-base.bed.gz
 
-tabfile=''
+MOSDEPTH_BED=$1
 
-print_usage() {
-	echo "Usage: '-i' your coverage.tab.gz file and use -t 'genomecov' or 'mosdepth'"
-}
+if [[ $# -ne 1 ]]; then
+    echo "Usage: $0 MOSDEPTH_BED"
+    exit 1
+fi
 
-while getopts 'i:t:' flag; do
-	case "${flag}" in
-		i) tabfile="${OPTARG}" ;;
-		t) tool="${OPTARG}" ;;
-		*) print_usage
-			exit 1 ;;
-	esac
-done
+source $(conda info --base)/etc/profile.d/conda.sh
+conda activate mosdepth
 
-# script
-prefix=$(echo ${tabfile:10} | sed 's/\..*//')
+$TOOLS/Biocrutch/scripts/Coverage/coverage_statistics.py -i $MOSDEPTH_BED -g -o ${MOSDEPTH_BED%.*.*.*}
+$TOOLS/Biocrutch/scripts/Coverage/coverage_statistics.py -i $MOSDEPTH_BED -n -f 1000000 -o ${MOSDEPTH_BED%.*.*.*}
 
-echo "whole genome stats..."
-$TOOLS/Biocrutch/scripts/Coverage/coverage_statistics.py -i ${tabfile} --tool-name ${tool} -g -o ${prefix}
-echo "scaffolds stats..."
-$TOOLS/Biocrutch/scripts/Coverage/coverage_statistics.py -i ${tabfile} --tool-name ${tool} -s -o ${prefix}
-echo "nonoverlapping windows stats..."
-$TOOLS/Biocrutch/scripts/Coverage/coverage_statistics.py -i ${tabfile} --tool-name ${tool} -n -f 1000000 -o ${prefix}
-$TOOLS/Biocrutch/scripts/Coverage/coverage_statistics.py -i ${tabfile} --tool-name ${tool} -n -f 100000 -o ${prefix}
