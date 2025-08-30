@@ -1,8 +1,8 @@
 #!/bin/bash
 # Usage:
 # ./coverage_stats.sh MOSDEPTH_BED
-# parallel -v --progress -j 16 "./coverage_stats.sh {} > {...}.coverage_stats.log 2>&1" ::: *.per-base.bed.gz
-# parallel -v --progress --results logs -j 16 "./coverage_stats.sh {} > {...}.coverage_stats.log 2>&1" ::: *.per-base.bed.gz
+# parallel -v --progress -j 16 "./coverage_stats.sh {} > {}.coverage_stats.log 2>&1" ::: *.per-base.bed.gz
+# parallel -v --progress --results logs -j 16 "./coverage_stats.sh {} > {}.coverage_stats.log 2>&1" ::: *.per-base.bed.gz
 
 MOSDEPTH_BED=$1
 
@@ -12,7 +12,7 @@ if [[ $# -ne 1 ]]; then
 fi
 
 source $(conda info --base)/etc/profile.d/conda.sh
-conda activate mosdepth
+conda activate python3.8
 
 $TOOLS/Biocrutch/scripts/Coverage/coverage_statistics.py -i $MOSDEPTH_BED -g -o ${MOSDEPTH_BED%.*.*.*}
 $TOOLS/Biocrutch/scripts/Coverage/coverage_statistics.py -i $MOSDEPTH_BED -n -f 1000000 -o ${MOSDEPTH_BED%.*.*.*}
