@@ -17,7 +17,6 @@ if [[ $# -ne 3 ]]; then
 fi
 
 if [[ ! -f "${BAM_FILE}.bai" ]]; then
-    echo "Index ${BAM_FILE}.bai not found. Creating index..."
     samtools index "$BAM_FILE"
 fi
 
