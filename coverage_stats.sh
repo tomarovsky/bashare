@@ -1,8 +1,8 @@
 #!/bin/bash
 # Usage:
 # ./coverage_stats.sh MOSDEPTH_BED
-# parallel -j 16 "./coverage_stats.sh {} > {...}.coverage_stats.log 2>&1" ::: *.per-base.bed.gz
-# parallel --results logs -j 16 "./coverage_stats.sh {} > {...}.coverage_stats.log 2>&1" ::: *.per-base.bed.gz
+# parallel -v --progress -j 16 "./coverage_stats.sh {} > {...}.coverage_stats.log 2>&1" ::: *.per-base.bed.gz
+# parallel -v --progress --results logs -j 16 "./coverage_stats.sh {} > {...}.coverage_stats.log 2>&1" ::: *.per-base.bed.gz
 
 MOSDEPTH_BED=$1
 
