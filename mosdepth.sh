@@ -4,6 +4,8 @@
 # parallel -v --progress -j 8 "$TOOLS/bashare/mosdepth.sh {} {.} 4 > {.}.mosdepth.log 2>&1" ::: *.bam
 # find . -name *.bam | parallel -v --progress -j 16 "$TOOLS/bashare/mosdepth.sh {} {.} 4 > {.}.mosdepth.log 2>&1"
 
+set -e -u
+
 BAM_FILE=$1
 OUTPUT=$2
 THREADS=$3
