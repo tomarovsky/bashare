@@ -1,8 +1,8 @@
 #!/bin/bash
 # Usage:
-# ./mosdepth.sh BAM_FILE OUTPUT THREADS
-# parallel -v --progress -j 8 "./mosdepth.sh {} {.} 4 > {.}.mosdepth.log 2>&1" ::: *.bam
-# parallel -v --progress --results logs -j 8 ./mosdepth.sh {} {.} 4 ::: *.bam
+# $TOOLS/bashare/mosdepth.sh BAM_FILE OUTPUT THREADS
+# parallel -v --progress -j 8 "$TOOLS/bashare/mosdepth.sh {} {.} 4 > {.}.mosdepth.log 2>&1" ::: *.bam
+# find . -name *.bam | parallel -v --progress -j 16 "$TOOLS/bashare/mosdepth.sh {} {.} 4 > {.}.mosdepth.log 2>&1"
 
 BAM_FILE=$1
 OUTPUT=$2

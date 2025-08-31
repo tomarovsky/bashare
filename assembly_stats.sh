@@ -5,7 +5,7 @@
 FASTA=$1
 NUMBER_OF_CHROMOSOME=$2
 
-if [[ $# -ne 3 ]]; then
+if [[ $# -ne 2 ]]; then
     echo "Usage: $0 FASTA NUMBER_OF_CHROMOSOME"
     exit 1
 fi
