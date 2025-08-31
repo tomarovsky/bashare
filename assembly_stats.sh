@@ -11,7 +11,7 @@ if [[ $# -ne 2 ]]; then
 fi
 
 if [[ "$FASTA" == *.gz ]]; then
-    gunzip "$FASTA"
+    unpigz -p 8 "$FASTA"
     FASTA="${FASTA%.gz}"
 fi
 
