@@ -2,6 +2,8 @@
 # Usage:
 # $TOOLS/bashare/assembly_stats.sh FASTA NUMBER_OF_CHROMOSOME
 
+set -e -u
+
 FASTA=$1
 NUMBER_OF_CHROMOSOME=$2
 
@@ -22,7 +24,7 @@ fi
 FASTA_PREFIX=${FASTA%.*}
 
 cat ${FASTA}.fai | awk '{print $1"\t"$2}' | sort -nr -k2 > ${FASTA_PREFIX}.len
-cat ${FASTA_PREFIX}.lengths | awk '{print $1}' | head -n ${NUMBER_OF_CHROMOSOME} > ${FASTA_PREFIX}.whitelist
+cat ${FASTA_PREFIX}.len | awk '{print $1}' | head -n ${NUMBER_OF_CHROMOSOME} > ${FASTA_PREFIX}.whitelist
 cat ${FASTA_PREFIX}.whitelist | awk '{print $1"\t"$1}' | head -n ${NUMBER_OF_CHROMOSOME} > ${FASTA_PREFIX}.syn
 cat ${FASTA_PREFIX}.syn | awk '{print $2}' | head -n ${NUMBER_OF_CHROMOSOME} > ${FASTA_PREFIX}.renamelist
 
