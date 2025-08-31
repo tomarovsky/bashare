@@ -22,7 +22,7 @@ fi
 FASTA_PREFIX=${FASTA%.*}
 
 cat ${FASTA}.fai | awk '{print $1"\t"$2}' | sort -nr -k2 > ${FASTA_PREFIX}.len
-cat ${FASTA_PREFIX}.lengths | awk '{print $1}' > ${FASTA_PREFIX}.whitelist
-cat ${FASTA_PREFIX}.whitelist | awk '{print $1"\t"$1}' > ${FASTA_PREFIX}.syn
-cat ${FASTA_PREFIX}.syn | awk '{print $2}' > ${FASTA_PREFIX}.renamelist
+cat ${FASTA_PREFIX}.lengths | awk '{print $1}' | head -n ${NUMBER_OF_CHROMOSOME} > ${FASTA_PREFIX}.whitelist
+cat ${FASTA_PREFIX}.whitelist | awk '{print $1"\t"$1}' | head -n ${NUMBER_OF_CHROMOSOME} > ${FASTA_PREFIX}.syn
+cat ${FASTA_PREFIX}.syn | awk '{print $2}' | head -n ${NUMBER_OF_CHROMOSOME} > ${FASTA_PREFIX}.renamelist
 
