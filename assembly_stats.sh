@@ -16,7 +16,7 @@ if [[ "$FASTA" == *.gz ]]; then
 fi
 
 if [[ ! -f "${FASTA}.fai" ]]; then
-    samtools index "$FASTA"
+    samtools faidx "$FASTA"
 fi
 
 FASTA_PREFIX=${FASTA%.*}
