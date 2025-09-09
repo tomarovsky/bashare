@@ -4,8 +4,6 @@
 # parallel -v --progress -j 8 "$TOOLS/bashare/picard_downsampling.sh {} {.}.22x.bam 0.1 > {.}.picard_downsampling.log 2>&1" ::: *.bam
 # find . -name "*.bam" | parallel -v --progress -j 16 "$TOOLS/bashare/picard_downsampling.sh {} {.}.22x.bam 0.2 > {.}.picard_downsampling.log 2>&1"
 
-set -e -u
-
 INPUT_BAM=$1
 OUTPUT_BAM=$2
 P=$3
@@ -18,5 +16,5 @@ if [[ $# -ne 3 ]]; then
     exit 1
 fi
 
-picard -Xmx20g DownsampleSam I="$INPUT_BAM" O="${OUTPUT_BAM}" P="$P" 
+picard -Xmx20g DownsampleSam I="${INPUT_BAM}" O="${OUTPUT_BAM}" P="$P" 
 
