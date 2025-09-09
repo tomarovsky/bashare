@@ -18,9 +18,5 @@ if [[ $# -ne 3 ]]; then
     exit 1
 fi
 
-if [[ ! -f "${INPUT_BAM}.bai" ]]; then
-    samtools index "$INPUT_BAM"
-fi
-
 picard -Xmx20g DownsampleSam I="$INPUT_BAM" O="${OUTPUT_BAM}" P="$P" 
 
