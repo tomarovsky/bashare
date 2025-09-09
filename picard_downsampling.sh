@@ -16,5 +16,5 @@ if [[ $# -ne 3 ]]; then
     exit 1
 fi
 
-picard -Xmx20g DownsampleSam I="${INPUT_BAM}" O="${OUTPUT_BAM}" P="$P" 
+picard DownsampleSam -Xmx20g I="${INPUT_BAM}" O="${OUTPUT_BAM}" P="${P}" 
 
