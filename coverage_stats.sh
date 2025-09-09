@@ -4,8 +4,6 @@
 # parallel -v --progress -j 16 "$TOOLS/bashare/coverage_stats.sh {} > {}.coverage_stats.log 2>&1" ::: *.per-base.bed.gz
 # find . -name *.per-base.bed.gz | parallel -v --progress -j 64 "$TOOLS/bashare/coverage_stats.sh {} > {}.coverage_stats.log 2>&1"
 
-set -e -u
-
 MOSDEPTH_BED=$1
 
 if [[ $# -ne 1 ]]; then

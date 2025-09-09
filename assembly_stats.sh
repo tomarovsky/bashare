@@ -2,8 +2,6 @@
 # Usage:
 # $TOOLS/bashare/assembly_stats.sh FASTA NUMBER_OF_CHROMOSOME
 
-set -e -u
-
 FASTA=$1
 NUMBER_OF_CHROMOSOME=$2
 

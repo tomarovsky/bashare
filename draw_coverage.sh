@@ -3,8 +3,6 @@
 # $TOOLS/bashare/draw_coverage.sh WINDOWS_STATS_CSV ASSEMBLY_PREFIX_PATH
 # find . -name *_windows_stats.csv | parallel -v --progress -j 64 "$TOOLS/bashare/draw_coverage.sh {} ../../assembly/genome"
 
-set -e -u
-
 WINDOWS_STATS_CSV=$1
 ASSEMBLY_PREFIX_PATH=$2
 
