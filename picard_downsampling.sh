@@ -9,7 +9,7 @@ OUTPUT_BAM=$2
 P=$3
 
 source $(conda info --base)/etc/profile.d/conda.sh
-conda activate mosdepth
+conda activate picard
 
 if [[ $# -ne 3 ]]; then
     echo "Usage: $0 BAM_FILE OUTPUT PROBABILITY"
