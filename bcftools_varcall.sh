@@ -1,6 +1,7 @@
 #!/bin/bash
 # Usage: 64 cpu
 # $TOOLS/bashare/bcftools_varcall.sh ASSEMBLY BAM_FILES [PLOIDY_FILE SAMPLES_FILE]
+# $TOOLS/bashare/bcftools_varcall.sh /path/to/genomic.fasta "/path/to/S1.bam /path/to/S2.bam /path/to/S3.bam" 
 
 source $(conda info --base)/etc/profile.d/conda.sh
 conda activate python3.8
@@ -15,7 +16,11 @@ if [[ $# -lt 2 ]]; then
     exit 1
 fi
 
-mkdir -p split/ split/mpileup/ split/bcf/
+if [[ ! -f "${ASSEMBLY}.fai" ]]; then
+    samtools faidx "$ASSEMBLY"
+fi
+
+mkdir -p split/ split/mpileup/ split/bcf/;
 
 BCFTOOLS_CALL_OPTS="-m -O u -v -f GQ,GP"
 if [[ -n "$PLOIDY_FILE" && -n "$SAMPLES_FILE" ]]; then
