@@ -1,18 +1,19 @@
 #!/bin/bash
 # Usage: 64 cpu
-# $TOOLS/bashare/bcftools_varcall.sh ASSEMBLY BAM_FILES [PLOIDY_FILE SAMPLES_FILE]
-# $TOOLS/bashare/bcftools_varcall.sh /path/to/genomic.fasta "/path/to/S1.bam /path/to/S2.bam /path/to/S3.bam" 
+# $TOOLS/bashare/bcftools_varcall.sh ASSEMBLY BAM_FILES OUTPUT_PREFIX [PLOIDY_FILE SAMPLES_FILE]
+# $TOOLS/bashare/bcftools_varcall.sh /path/to/genomic.fasta "/path/to/S1.bam /path/to/S2.bam /path/to/S3.bam" prefix
 
 source $(conda info --base)/etc/profile.d/conda.sh
 conda activate python3.8
 
 ASSEMBLY=$1
-BAM_FILES=$2
-PLOIDY_FILE=$3
-SAMPLES_FILE=$4
+BAM_FILES=$2 # space separated
+OUTPUT_PREFIX=$3
+PLOIDY_FILE=$4
+SAMPLES_FILE=$5
 
-if [[ $# -lt 2 ]]; then
-    echo "Usage: $0 ASSEMBLY BAM_FILES [PLOIDY_FILE SAMPLES_FILE]"
+if [[ $# -lt 3 ]]; then
+    echo "Usage: $0 ASSEMBLY BAM_FILES OUTPUT_PREFIX [PLOIDY_FILE SAMPLES_FILE]"
     exit 1
 fi
 
