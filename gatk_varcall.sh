@@ -13,7 +13,7 @@ BAM_FILES=$2 # comma separated
 OUTPUT_PREFIX=$3
 
 if [[ $# -ne 3 ]]; then
-    echo "Usage: $0 ASSEMBLY BAM_FILES OUTPUT_PREFIX
+    echo "Usage: $0 ASSEMBLY BAM_FILES OUTPUT_PREFIX"
     exit 1
 fi
 
