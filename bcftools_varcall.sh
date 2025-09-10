@@ -10,6 +10,11 @@ BAM_FILES=$2
 PLOIDY_FILE=$3
 SAMPLES_FILE=$4
 
+if [[ $# -ne 3 ]]; then
+    echo "Usage: $0 ASSEMBLY BAM_FILES PLOIDY_FILE SAMPLES_FILE"
+    exit 1
+fi
+
 mkdir -p split/ split//mpileup/ split//bcf/;
 
 ${TOOLS}/MAVR/scripts/sequence/prepare_region_list.py -r ${ASSEMBLY} -s -m 1500000 -n 100 -g samtools -x 1000 2>/dev/null |\
