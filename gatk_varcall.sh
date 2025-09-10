@@ -1,6 +1,7 @@
 #!/bin/bash
 # Usage: 64 cpu
 # $TOOLS/bashare/gatk_varcall.sh ASSEMBLY BAM_FILES OUTPUT_PREFIX
+# $TOOLS/bashare/gatk_varcall.sh genomic.fasta S1.bam,S2.bam,S3.bam gulo_gulo.gatk |& tee -a gatk.log
 
 source $(conda info --base)/etc/profile.d/conda.sh
 conda activate python3.8
