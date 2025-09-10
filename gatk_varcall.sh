@@ -23,7 +23,7 @@ fi
 
 $TOOLS/MAVR/scripts/snpcall/parallel_vcf_call_gatk4.py \
     -r ${ASSEMBLY} \
-    -o ${pwd}/ \
+    -o $(pwd)/ \
     -b ${BAM_FILES} \
     -p ${OUTPUT_PREFIX} \
     -t 64 \
