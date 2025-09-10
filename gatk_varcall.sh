@@ -17,8 +17,8 @@ if [[ $# -ne 3 ]]; then
     exit 1
 fi
 
-if [[ ! -f "${ASSEMBLY}.fai" ]]; then
-    samtools faidx "$ASSEMBLY"
+if [[ ! -f "${ASSEMBLY}.dict" ]]; then
+    picard CreateSequenceDictionary -R "$ASSEMBLY"
 fi
 
 $TOOLS/MAVR/scripts/snpcall/parallel_vcf_call_gatk4.py \
