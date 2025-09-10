@@ -2,7 +2,6 @@
 # Usage: 64 cpu
 # $TOOLS/bashare/bcftools_varcall.sh ASSEMBLY BAM_FILES PLOIDY_FILE SAMPLES_FILE
 
-# mamba create -n varcall -c bioconda conda-forge bcftools bedtools samtools
 source $(conda info --base)/etc/profile.d/conda.sh
 conda activate python3.8
 
