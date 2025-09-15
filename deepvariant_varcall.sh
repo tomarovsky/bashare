@@ -1,15 +1,15 @@
 #!/bin/bash
 # Usage: 64 cpu
-# $TOOLS/bashare/deepvariant_varcall.sh ASSEMBLY "BAM_FILES"
-# $TOOLS/bashare/deepvariant_varcall.sh genomic.fasta "S1.bam S2.bam S3.bam" |& tee -a deepvariant.log
+# $TOOLS/bashare/deepvariant_varcall.sh ASSEMBLY BAM_FILE
+# $TOOLS/bashare/deepvariant_varcall.sh genomic.fasta S1.bam |& tee -a deepvariant.log
 
 if [[ $# -ne 2 ]]; then
-    echo "Usage: $0 ASSEMBLY BAM_FILES"
+    echo "Usage: $0 ASSEMBLY BAM_FILE"
     exit 1
 fi
 
 ASSEMBLY=$1
-BAM_FILES=$2 # space separated
+BAM=$2
 SIF="$TOOLS/deepvariant-1.9.0" # sandbox
 
 source $(conda info --base)/etc/profile.d/conda.sh
@@ -29,35 +29,28 @@ if [[ ! -f "${ASSEMBLY}.fai" ]]; then
     conda run -n varcall samtools faidx "$ASSEMBLY"
 fi
 
-# get bing directories
+if [[ ! -f "${BAM}.bai" ]]; then
+    conda run -n varcall samtools index "$BAM"
+fi
+
+# bind directories
 BIND_DIRS=()
 BIND_DIRS+=($PWD)
 BIND_DIRS+=("$(dirname "$(readlink -f ${ASSEMBLY})")")
-for BAM in $BAM_FILES; do
-    BIND_DIRS+=("$(dirname "$(readlink -f "$BAM")")")
-done
-# uniq only
+BIND_DIRS+=("$(dirname "$(readlink -f "$BAM")")")
 BIND_DIRS=$(printf "%s\n" "${BIND_DIRS[@]}" | sort -u | paste -sd, -)
 
+SAMPLE_NAME=$(conda run -n varcall samtools view -H "$BAM" | grep '@RG' | sed 's/.*SM:\([^ \t]*\).*/\1/' | uniq)
 
-for BAM in $BAM_FILES; do 
-
-    SAMPLE=$(conda run -n varcall samtools view -H $BAM | grep '@RG' | sed 's/.*SM:\([^ \t]*\).*/\1/' | uniq)
-
-    if [[ ! -f "${BAM}.bai" ]]; then
-        conda run -n varcall samtools index "$BAM"
-    fi
-
-    singularity run --bind "$BIND_DIRS" --pwd "$(pwd)" $SIF \
-    /opt/deepvariant/bin/run_deepvariant \
+singularity run --bind "$BIND_DIRS" --pwd "$(pwd)" $SIF \
+/opt/deepvariant/bin/run_deepvariant \
     --model_type=WGS \
     --ref=${ASSEMBLY} \
     --reads=${BAM} \
-    --output_vcf=${SAMPLE}.deepvariant.vcf.gz \
-    --output_gvcf=${SAMPLE}.deepvariant.g.vcf.gz \
+    --output_vcf=${SAMPLE_NAME}.deepvariant.vcf.gz \
+    --output_gvcf=${SAMPLE_NAME}.deepvariant.g.vcf.gz \
     --vcf_stats_report=true \
     --num_shards=64
     # --regions "chr20:10,000,000-10,010,000" \
     # --intermediate_results_dir "${OUTPUT_DIR}/intermediate_results_dir" \
-done
 
