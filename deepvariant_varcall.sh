@@ -1,11 +1,15 @@
 #!/bin/bash
 # Usage: 64 cpu
-# $TOOLS/bashare/deepvariant_varcall.sh ASSEMBLY "BAM_FILES" OUTPUT_PREFIX
-# $TOOLS/bashare/deepvariant_varcall.sh genomic.fasta "S1.bam S2.bam S3.bam" gulo_gulo.deepvariant |& tee -a deepvariant.log
+# $TOOLS/bashare/deepvariant_varcall.sh ASSEMBLY "BAM_FILES"
+# $TOOLS/bashare/deepvariant_varcall.sh genomic.fasta "S1.bam S2.bam S3.bam" |& tee -a deepvariant.log
+
+if [[ $# -ne 3 ]]; then
+    echo "Usage: $0 ASSEMBLY BAM_FILES"
+    exit 1
+fi
 
 ASSEMBLY=$1
 BAM_FILES=$2 # space separated
-OUTPUT_VCF_PREFIX=$3
 SIF="$TOOLS/deepvariant-1.9.0.sif"
 
 source $(conda info --base)/etc/profile.d/conda.sh
@@ -15,11 +19,6 @@ mkdir -p "$PWD/tmp"
 for var in SINGULARITYENV_TMPDIR TMPDIR TMP TEMP; do
     export $var="$PWD/tmp"
 done
-
-if [[ $# -ne 3 ]]; then
-    echo "Usage: $0 ASSEMBLY BAM_FILES OUTPUT_PREFIX"
-    exit 1
-fi
 
 if [[ "$ASSEMBLY" == *.gz ]]; then
     unpigz -p 8 "$ASSEMBLY"
