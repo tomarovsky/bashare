@@ -3,7 +3,7 @@
 # $TOOLS/bashare/deepvariant_varcall.sh ASSEMBLY "BAM_FILES"
 # $TOOLS/bashare/deepvariant_varcall.sh genomic.fasta "S1.bam S2.bam S3.bam" |& tee -a deepvariant.log
 
-if [[ $# -ne 3 ]]; then
+if [[ $# -ne 2 ]]; then
     echo "Usage: $0 ASSEMBLY BAM_FILES"
     exit 1
 fi
