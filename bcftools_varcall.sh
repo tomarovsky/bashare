@@ -1,6 +1,6 @@
 #!/bin/bash
 # Usage: 64 cpu
-# $TOOLS/bashare/bcftools_varcall.sh ASSEMBLY BAM_FILES OUTPUT_PREFIX [PLOIDY_FILE SAMPLES_FILE]
+# $TOOLS/bashare/bcftools_varcall.sh ASSEMBLY "BAM_FILES" OUTPUT_PREFIX [PLOIDY_FILE SAMPLES_FILE]
 # $TOOLS/bashare/bcftools_varcall.sh /path/to/genomic.fasta "/path/to/S1.bam /path/to/S2.bam /path/to/S3.bam" prefix
 
 source $(conda info --base)/etc/profile.d/conda.sh
