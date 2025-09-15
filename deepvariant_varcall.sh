@@ -36,6 +36,7 @@ fi
 # bind directories
 BIND_DIRS=()
 BIND_DIRS+=($PWD)
+BIND_DIRS+=("/usr/lib/locale:/usr/lib/locale")
 BIND_DIRS+=("$(dirname "$(readlink -f ${ASSEMBLY})")")
 BIND_DIRS+=("$(dirname "$(readlink -f "$BAM")")")
 BIND_DIRS=$(printf "%s\n" "${BIND_DIRS[@]}" | sort -u | paste -sd, -)
