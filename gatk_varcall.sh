@@ -7,7 +7,7 @@ source $(conda info --base)/etc/profile.d/conda.sh
 conda activate python3.8
 
 # GATK
-export PATH=/mnt/tank/scratch/atomarovsky/miniconda3/envs/gatk/bin/:/mnt/tank/scratch/atomarovsky/tools/gatk-4.6.2.0/:${PATH}
+export PATH=$(conda info --base)/envs/gatk/bin/:${TOOLS}/gatk-4.6.2.0/:${PATH}
 
 ASSEMBLY=$1
 BAM_FILES=$2 # comma separated
