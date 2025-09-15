@@ -10,7 +10,7 @@ fi
 
 ASSEMBLY=$1
 BAM_FILES=$2 # space separated
-SIF="$TOOLS/deepvariant-1.9.0.sif"
+SIF="$TOOLS/deepvariant-1.9.0" # sandbox
 
 source $(conda info --base)/etc/profile.d/conda.sh
 conda activate sing
