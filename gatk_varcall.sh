@@ -18,7 +18,7 @@ if [[ $# -ne 3 ]]; then
     exit 1
 fi
 
-if [[ ! -f "${ASSEMBLY}.dict" ]]; then
+if [[ ! -f "${ASSEMBLY%.*}.dict" ]]; then
     picard CreateSequenceDictionary -R "$ASSEMBLY"
 fi
 
