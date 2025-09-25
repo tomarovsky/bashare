@@ -13,7 +13,7 @@ if [[ $# -ne 3 ]]; then
     exit 1
 fi
 
-mkdir w1mb.s100kb;
+mkdir -p w1mb.s100kb;
 cd w1mb.s100kb;
 
 for CHR in $SCAFFOLDS; do
