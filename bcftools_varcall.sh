@@ -23,7 +23,7 @@ fi
 
 mkdir -p split/ split/mpileup/ split/bcf/;
 
-BCFTOOLS_CALL_OPTS="-m -O u -v -f GQ,GP"
+BCFTOOLS_CALL_OPTS="-m -O u -v -a GQ,GP"
 if [[ -n "$PLOIDY_FILE" && -n "$SAMPLES_FILE" ]]; then
     BCFTOOLS_CALL_OPTS="--ploidy-file $PLOIDY_FILE --samples-file $SAMPLES_FILE --group-samples - $BCFTOOLS_CALL_OPTS"
 fi
@@ -36,7 +36,7 @@ ${TOOLS}/MAVR/scripts/sequence/prepare_region_list.py -r ${ASSEMBLY} -s -m 15000
 
 
 bcftools concat -O u --threads 32 `ls split//bcf//tmp.*.bcf | sort -V` | bcftools view -O z -o ${OUTPUT_PREFIX}.vcf.gz - &
-bcftools concat -O u --threads 32 `ls split//mpileup//tmp.*.mpileup.bcf | sort -V` | bcftools view -O z -o ${OUTPUT_PREFIX}.mpileup.vcf.gz - &
+# bcftools concat -O u --threads 32 `ls split//mpileup//tmp.*.mpileup.bcf | sort -V` | bcftools view -O z -o ${OUTPUT_PREFIX}.mpileup.vcf.gz - &
 
 wait
 
