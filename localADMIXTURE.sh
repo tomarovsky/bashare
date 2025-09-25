@@ -1,10 +1,11 @@
 #!/bin/bash
 # Usage:
-# $TOOLS/bashare/localADMIXTURE.sh VCF REGION_FILE "SCAFFOLDS"
+# $TOOLS/bashare/localADMIXTURE.sh VCF REGION_FILE "SCAFFOLDS" RR
 
 VCF=$1 # absolute path
 REGION_FILE=$2 # mzib.autosomes_and_PAR.w1mb.s100kb.features.bed
 SCAFFOLDS=$3
+RR=$4
 
 source $(conda info --base)/etc/profile.d/conda.sh
 
@@ -30,7 +31,7 @@ for CHR in $SCAFFOLDS; do
             --out ${CHR}.${REGION}.plink \
             --allow-extra-chr \
             --set-missing-var-ids @:# \
-            --indep-pairwise 50 10 0.7 \
+            --indep-pairwise 50 10 $RR \
             --double-id \
             --threads 1 && \
             plink --vcf ${CHR}.${REGION}.vcf \
