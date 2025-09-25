@@ -45,7 +45,7 @@ for CHR in $SCAFFOLDS; do
             --make-bed \
             --threads 1; then
 
-            cat ${CHR}.${REGION}.plink.bim | awk -F"_" '{print $3}' > ${CHR}.${REGION}.plink.bim.tmp;
+            cat ${CHR}.${REGION}.plink.bim | awk -F '_' '{print $3"_"$4"_"$5}' > ${CHR}.${REGION}.plink.bim.tmp;
             mv ${CHR}.${REGION}.plink.bim ${CHR}.${REGION}.plink.bim.raw;
             mv ${CHR}.${REGION}.plink.bim.tmp ${CHR}.${REGION}.plink.bim;
 
