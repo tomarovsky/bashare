@@ -1,6 +1,7 @@
 #!/bin/bash
 # Usage:
 # $TOOLS/bashare/localADMIXTURE.sh VCF REGION_FILE "SCAFFOLDS"
+# for i in 0.2; do cd $i; mkdir local_admixture; cd local_admixture; for S in {1..19}; do $TOOLS/bashare/localADMIXTURE.v2.sh /mnt/tank/scratch/skliver/common/mustelidae/martes_zibellina/genome/admixture/LD_test/${i}/mzib.allsamples.filt.mapq10.max250.min33.intersect.2.merge.all.snp.autosomes_and_PAR.plink.${i}.vcf.gz /mnt/tank/scratch/skliver/common/mustelidae/martes_zibellina/genome/admixture/LD_test/mzib.w1mb.s100kb.autosomes_and_PAR.num.bed $S > /dev/null 2>&1 & done; cd ../../; done
 
 VCF=$1 # absolute path
 REGION_FILE=$2 # absolute path mzib.autosomes_and_PAR.w1mb.s100kb.features.bed
@@ -32,14 +33,14 @@ for CHR in $SCAFFOLDS; do
             for SAMPLE in {1..33}; do
                 ADMIXTURE_OUTLINE=$(sed "${SAMPLE}q;d" ${CHR}.${REGION}.plink.2.Q | awk '{print $1"\t"$2}');
                 echo $ADMIXTURE_OUTLINE;
-                echo -e "HiC_scafflod_${REG}\t${ADMIXTURE_OUTLINE}" >> ${SAMPLE}.${CHR}.admixture.concat.Q;
+                echo -e "HiC_scafflod_${REG}\t${ADMIXTURE_OUTLINE}" >> ${SAMPLE}.HiC_scafflod_${CHR}.admixture.concat.Q;
             done;
             cat ${CHR}.${REGION}.admixture.log >> ${SAMPLE}.${CHR}.admixture.concat.log;
             rm *plink* *.vcf *.admixture.log;
         else
             echo 'WARNING! Empty PLINK results!';
             for SAMPLE in {1..33}; do
-                echo -e "HiC_scafflod_${REG}\tEMPTY\tEMPTY" >> ${SAMPLE}.${CHR}.admixture.concat.Q;
+                echo -e "HiC_scafflod_${REG}\tEMPTY\tEMPTY" >> ${SAMPLE}.HiC_scafflod_${CHR}.admixture.concat.Q;
             done;
             rm *plink* *.vcf;
         conda deactivate;
