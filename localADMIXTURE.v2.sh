@@ -35,7 +35,6 @@ for CHR in $SCAFFOLDS; do
                 echo $ADMIXTURE_OUTLINE;
                 echo -e "HiC_scafflod_${REG}\t${ADMIXTURE_OUTLINE}" >> ${SAMPLE}.HiC_scafflod_${CHR}.admixture.concat.Q;
             done;
-            cat ${CHR}.${REGION}.admixture.log >> ${SAMPLE}.${CHR}.admixture.concat.log;
             rm *plink* *.vcf *.admixture.log;
         else
             echo 'WARNING! Empty PLINK results!';
