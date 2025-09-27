@@ -33,13 +33,13 @@ for CHR in $SCAFFOLDS; do
             for SAMPLE in {1..33}; do
                 ADMIXTURE_OUTLINE=$(sed "${SAMPLE}q;d" ${CHR}.${REGION}.plink.2.Q | awk '{print $1"\t"$2}');
                 echo $ADMIXTURE_OUTLINE;
-                echo -e "HiC_scafflod_${REG}\t${ADMIXTURE_OUTLINE}" >> ${SAMPLE}.HiC_scafflod_${CHR}.admixture.concat.Q;
+                echo -e "HiC_scaffold_${REG}\t${ADMIXTURE_OUTLINE}" >> ${SAMPLE}.HiC_scaffold_${CHR}.admixture.concat.Q;
             done;
             rm *plink* *.vcf *.admixture.log;
         else
             echo 'WARNING! Empty PLINK results!';
             for SAMPLE in {1..33}; do
-                echo -e "HiC_scafflod_${REG}\tEMPTY\tEMPTY" >> ${SAMPLE}.HiC_scafflod_${CHR}.admixture.concat.Q;
+                echo -e "HiC_scaffold_${REG}\tEMPTY\tEMPTY" >> ${SAMPLE}.HiC_scaffold_${CHR}.admixture.concat.Q;
             done;
             rm *plink* *.vcf;
         conda deactivate;
