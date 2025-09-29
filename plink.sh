@@ -22,7 +22,7 @@ plink --vcf $VCF --out ${OUTPREFIX} \
     --threads $THREADS
 
 plink --vcf $VCF --out ${OUTPREFIX} \
-    --allow-extra-chr
+    --allow-extra-chr \
     --set-missing-var-ids @:# \
     --extract ${VCF%.*.*}.plink.prune.in \
     --geno 0 \
