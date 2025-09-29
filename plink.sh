@@ -18,7 +18,7 @@ plink --vcf $VCF --out ${OUTPREFIX} \
     --double-id \
     --allow-extra-chr \
     --set-missing-var-ids @:# \
-    --indep-pairwise 50 10 0.7 \
+    --indep-pairwise 50 10 0.2 \
     --threads $THREADS
 
 plink --vcf $VCF --out ${OUTPREFIX} \
