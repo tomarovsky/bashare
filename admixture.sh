@@ -2,7 +2,7 @@
 # Usage:
 # $TOOLS/bashare/admixture.sh PLINK_BED THREADS
 
-PLINK_BED=$1
+PLINK_BED=$1 # absolute path
 THREADS=$2
 
 source $(conda info --base)/etc/profile.d/conda.sh
