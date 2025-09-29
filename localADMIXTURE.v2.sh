@@ -1,10 +1,10 @@
 #!/bin/bash
 # Usage:
 # $TOOLS/bashare/localADMIXTURE.sh VCF REGION_FILE "SCAFFOLDS"
-# for i in 0.2; do cd $i; mkdir local_admixture; cd local_admixture; for S in {1..19}; do $TOOLS/bashare/localADMIXTURE.v2.sh /mnt/tank/scratch/skliver/common/mustelidae/martes_zibellina/genome/admixture/LD_test/${i}/mzib.allsamples.filt.mapq10.max250.min33.intersect.2.merge.all.snp.autosomes_and_PAR.plink.${i}.vcf.gz /mnt/tank/scratch/skliver/common/mustelidae/martes_zibellina/genome/admixture/LD_test/mzib.w1mb.s100kb.autosomes_and_PAR.num.bed $S > /dev/null 2>&1 & done; cd ../../; done
+# for S in {1..19}; do $TOOLS/bashare/localADMIXTURE.v2.sh /mnt/tank/scratch/skliver/common/mustelidae/martes_martes/genome/admixture/0.2/mmar.allsamples.filt.mapq10.max250.min33.intersect.2.merge.all.snp.autosomes_and_PAR.plink.0.2.vcf.gz /mnt/tank/scratch/skliver/common/mustelidae/martes_zibellina/genome/admixture/LD_test/mzib.w1mb.s100kb.autosomes_and_PAR.num.bed $S > /dev/null 2>&1 & done
 
 VCF=$1 # absolute path
-REGION_FILE=$2 # absolute path mzib.autosomes_and_PAR.w1mb.s100kb.features.bed
+REGION_FILE=$2 # absolute path
 SCAFFOLDS=$3
 
 source $(conda info --base)/etc/profile.d/conda.sh
