@@ -24,7 +24,7 @@ plink --vcf $VCF --out ${OUTPREFIX} \
 plink --vcf $VCF --out ${OUTPREFIX} \
     --allow-extra-chr \
     --set-missing-var-ids @:# \
-    --extract ${VCF%.*.*}.plink.prune.in \
+    --extract ${OUTPREFIX}.prune.in \
     --geno 0 \
     --maf 0.03 \
     --snps-only \
