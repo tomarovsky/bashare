@@ -1,16 +1,17 @@
 #!/bin/bash
 # Usage:
-# $TOOLS/bashare/plink.sh VCF OUTPREFIX THREADS
+# $TOOLS/bashare/plink.sh VCF OUTPREFIX LD THREADS
 
 VCF=$1
 OUTPREFIX=$2
-THREADS=$3
+LD=$3
+THREADS=$4
 
 source $(conda info --base)/etc/profile.d/conda.sh
 conda activate plink1.9
 
-if [[ $# -ne 3 ]]; then
-    echo "Usage: $0 VCF OUTPREFIX THREADS"
+if [[ $# -ne 4 ]]; then
+    echo "Usage: $0 VCF OUTPREFIX LD THREADS"
     exit 1
 fi
 
@@ -18,7 +19,7 @@ plink --vcf $VCF --out ${OUTPREFIX} \
     --double-id \
     --allow-extra-chr \
     --set-missing-var-ids @:# \
-    --indep-pairwise 50 10 0.2 \
+    --indep-pairwise 50 10 $LD \
     --threads $THREADS
 
 plink --vcf $VCF --out ${OUTPREFIX} \
