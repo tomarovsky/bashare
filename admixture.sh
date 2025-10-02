@@ -1,15 +1,16 @@
 #!/bin/bash
 # Usage:
-# $TOOLS/bashare/admixture.sh PLINK_BED THREADS
+# $TOOLS/bashare/admixture.sh PLINK_BED K_LIST THREADS
 
 PLINK_BED=$1 # absolute path
-THREADS=$2
+K_LIST=$2
+THREADS=$3
 
 source $(conda info --base)/etc/profile.d/conda.sh
 conda activate admixture
 
-if [[ $# -ne 2 ]]; then
-    echo "Usage: $0 PLINK_BED THREADS"
+if [[ $# -ne 3 ]]; then
+    echo "Usage: $0 PLINK_BED K_LIST THREADS"
     exit 1
 fi
 
@@ -18,7 +19,7 @@ for SEED in {41..43}; do
     mkdir -p $DIR
     cd $DIR
 
-    for K in {1..6}; do
+    for K in $K_LIST; do
         admixture --seed=$SEED -j$THREADS --cv $PLINK_BED $K | tee admixture.K_${K}.log
     done
 
