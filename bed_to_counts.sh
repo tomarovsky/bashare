@@ -17,6 +17,7 @@ conda activate varcall
 bedtools intersect -a $WINDOW_BED -b $MASK_BED -wao > ${MASK_BED%.*}.w1mb.s100kb.intersect_wao.bed
 
 # step 2: groupby
+conda activate python3.8
 $TOOLS/Biocrutch/scripts/Convert/intersect_wao_groupby.py ${MASK_BED%.*}.w1mb.s100kb.intersect_wao.bed ${MASK_BED%.*}.w1mb.s100kb.counts.bed
 rm ${MASK_BED%.*}.w1mb.s100kb.intersect_wao.bed 
 
