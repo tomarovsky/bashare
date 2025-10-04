@@ -4,17 +4,17 @@
 
 set -euo pipefail
 
+if [[ $# -ne 4 ]]; then
+    echo "Usage: $0 PER_BASE_BED_FILE COVERAGE MALES 'HEMI_REGION_COORDS'"
+    exit 1
+fi
+
 PER_BASE_BED_FILE=$1 # mosdepth
 COVERAGE=$2 # $(cat *.mapq20_whole_genome_stats.csv | sed -n 2p | awk '{print $2}')
 MALES=$3 # txt file
 HEMI_REGION_COORDS=$4 # HiC_scaffold_19:6680001-124421298
 
 SAMPLE=$(basename "$PER_BASE_BED_FILE" | cut -d. -f1)
-
-if [[ $# -ne 3 ]]; then
-    echo "Usage: $0 PER_BASE_BED_FILE COVERAGE MALES 'HEMI_REGION_COORDS'"
-    exit 1
-fi
 
 source $(conda info --base)/etc/profile.d/conda.sh
 conda activate py38
