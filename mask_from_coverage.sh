@@ -26,8 +26,8 @@ if grep -qw "$SAMPLE" "$MALES"; then
     DIP_TMP="${SAMPLE}.diploid.tmp.per-base.bed.gz"
 
     conda activate varcall
-    bedtools intersect -a <(zcat "$PER_BASE_BED_FILE") -b "$HEMI_REGIONS_BED" | gzip > "$HEMI_TMP"
-    bedtools intersect -v -a <(zcat "$PER_BASE_BED_FILE") -b "$HEMI_REGIONS_BED" | gzip > "$DIP_TMP"
+    bedtools intersect -a <(zcat "$PER_BASE_BED_FILE" | sort -k1,1 -k2,2n) -b "$HEMI_REGIONS_BED" -sorted | gzip > "$HEMI_TMP"
+    bedtools intersect -v -a <(zcat "$PER_BASE_BED_FILE" | sort -k1,1 -k2,2n) -b "$HEMI_REGIONS_BED" -sorted | gzip > "$DIP_TMP"
     conda deactivate
 
     conda activate py38
