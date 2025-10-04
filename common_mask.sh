@@ -1,5 +1,6 @@
 #!/bin/bash
 # common_mask.sh BED_FILES OUTPREFIX THREADS
+# $TOOLS/bashare/common_mask.sh *.max250.min33 mzib 64
 
 if [[ $# -lt 3 ]]; then
     echo "Usage: $0 BED_FILE1 [BED_FILE2 ...] OUTPREFIX THREADS"
@@ -45,7 +46,7 @@ done | parallel -j "$THREADS" --colsep ' ' '
 '
 
 echo "Sorting..."
-sort -k1,1 -k2,2n "$tmpdir"/*.intersect > "$tmpdir/all_intersect.sorted.bed"
+cat "$tmpdir"/*.intersect | sort -k1,1 -k2,2n > "$tmpdir/all_intersect.sorted.bed"
 
 echo "Merging..."
 bedtools merge -i "$tmpdir/all_intersect.sorted.bed" > "${OUTPREFIX}.merge_all.intersect_2.mapq10.bed"
