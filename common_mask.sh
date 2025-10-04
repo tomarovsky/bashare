@@ -25,7 +25,7 @@ for bed in "${BED_FILES[@]}"; do
 done
 
 tmpdir="./tmp_intersect"
-mkdir -p "${tmpdir}/"
+mkdir -p "${tmpdir}/tmp_sort/"
 
 # all pairwise combinations and compute intersections in parallel
 for i in "${!sorted_bed_files[@]}"; do
@@ -46,7 +46,7 @@ done | parallel -j "$THREADS" --colsep ' ' '
 '
 
 echo "Sorting..."
-sort --parallel="$THREADS" --merge -k1,1 -k2,2n "$tmpdir"/*.intersect > "$tmpdir/all_intersect.sorted.bed"
+sort --parallel="$THREADS" -T "${tmpdir}/tmp_sort" --merge -k1,1 -k2,2n "$tmpdir"/*.intersect > "$tmpdir/all_intersect.sorted.bed"
 
 echo "Merging..."
 bedtools merge -i "$tmpdir/all_intersect.sorted.bed" > "${OUTPREFIX}.merge_all.intersect_2.mapq10.bed"
