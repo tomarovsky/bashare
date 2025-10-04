@@ -11,16 +11,14 @@ HEMI_REGION_COORDS=$4 # HiC_scaffold_19:6680001-124421298
 
 SAMPLE=$(basename "$PER_BASE_BED_FILE" | cut -d. -f1)
 
-source $(conda info --base)/etc/profile.d/conda.sh
-
 if [[ $# -ne 3 ]]; then
     echo "Usage: $0 PER_BASE_BED_FILE COVERAGE MALES 'HEMI_REGION_COORDS'"
     exit 1
 fi
 
+source $(conda info --base)/etc/profile.d/conda.sh
 conda activate py38
 
-# male of female
 if grep -qw "$SAMPLE" "$MALES"; then
     echo "[INFO] $SAMPLE == FEMALE"
 
