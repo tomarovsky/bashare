@@ -9,7 +9,7 @@ if [[ $# -ne 4 ]]; then
     exit 1
 fi
 
-PER_BASE_BED_FILE=$1 # mosdepth
+PER_BASE_BED_FILE=$1 # mosdepth.per-base.bed.gz
 COVERAGE=$2 # $(cat *.mapq20_whole_genome_stats.csv | sed -n 2p | awk '{print $2}')
 MALES=$3 # txt file
 HEMI_REGION_COORDS=$4 # HiC_scaffold_19:6680001-124421298
@@ -29,27 +29,27 @@ if grep -qw "$SAMPLE" "$MALES"; then
 
     # split per-base.bed.gz
     zcat "$PER_BASE_BED_FILE" | awk -v chr="$CHR" -v start="$START" -v end="$END" \
-        -v hemi="${SAMPLE}.hemi.tmp.bed.gz" -v dip="${SAMPLE}.diploid.tmp.bed.gz" '
+        -v hemi="${SAMPLE}.hemi.tmp.per-base.bed.gz" -v dip="${SAMPLE}.diploid.tmp.per-base.bed.gz" '
         ($1==chr && $2>=start && $3<=end) {print | "gzip -c > " hemi}
         !($1==chr && $2>=start && $3<=end) {print | "gzip -c > " dip}'
 
     "$TOOLS/MAVR/scripts/alignment/coverage/generate_mask_from_coverage_bed.py" \
-        -c ${SAMPLE}.diploid.tmp.bed.gz -m "$COVERAGE" --max_coverage_threshold 2.5 --min_coverage_threshold 0.33 \
-        -o ${SAMPLE}.diploid.mask.bed
+        -c ${SAMPLE}.diploid.tmp.per-base.bed.gz -m "$COVERAGE" --max_coverage_threshold 2.5 --min_coverage_threshold 0.33 \
+        -o ${SAMPLE}.diploid.per-base.mask.bed
 
     "$TOOLS/MAVR/scripts/alignment/coverage/generate_mask_from_coverage_bed.py" \
-        -c ${SAMPLE}.hemi.tmp.bed.gz -m "$(awk -v cov=$COVERAGE 'BEGIN{print cov/2}')" \
+        -c ${SAMPLE}.hemi.tmp.per-base.bed.gz -m "$(awk -v cov=$COVERAGE 'BEGIN{print cov/2}')" \
         --max_coverage_threshold 2.5 --min_coverage_threshold 0.33 \
-        -o ${SAMPLE}.hemi.mask.bed
+        -o ${SAMPLE}.hemi.per-base.mask.bed
 
-    cat ${SAMPLE}.diploid.mask.bed ${SAMPLE}.hemi.mask.bed | sort -k1,1 -k2,2n > "${SAMPLE}.mask.max250.min33.bed"
-    # rm -f ${SAMPLE}.diploid.tmp.bed.gz ${SAMPLE}.hemi.tmp.bed.gz ${SAMPLE}.diploid.mask.bed ${SAMPLE}.hemi.mask.bed
+    cat ${SAMPLE}.diploid.per-base.mask.bed ${SAMPLE}.hemi.per-base.mask.bed | sort -k1,1 -k2,2n > "${PER_BASE_BED_FILE%.*.*}.max250.min33.bed"
+    # rm -f ${SAMPLE}.diploid.tmp.per-base.bed.gz ${SAMPLE}.hemi.tmp.per-base.bed.gz ${SAMPLE}.diploid.per-base.mask.bed ${SAMPLE}.hemi.per-base.mask.bed
 
 else
     echo "[INFO] $SAMPLE == FEMALE"
 
     "$TOOLS/MAVR/scripts/alignment/coverage/generate_mask_from_coverage_bed.py" \
         -c "$PER_BASE_BED_FILE" -m "$COVERAGE" --max_coverage_threshold 2.5 --min_coverage_threshold 0.33 \
-        -o "${SAMPLE}.mask.max250.min33.bed"
+        -o "${PER_BASE_BED_FILE%.*.*}.max250.min33.bed"
 fi
 
