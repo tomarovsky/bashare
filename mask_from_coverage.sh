@@ -29,21 +29,21 @@ if grep -qw "$SAMPLE" "$MALES"; then
 
     # split per-base.bed.gz
     zcat "$PER_BASE_BED_FILE" | awk -v chr="$CHR" -v start="$START" -v end="$END" \
-        -v hemi="${SAMPLE}.hemi.tmp.bed" -v dip="${SAMPLE}.diploid.tmp.bed" '
-        ($1==chr && $2>=start && $3<=end) {print > hemi}
-        !($1==chr && $2>=start && $3<=end) {print > dip}'
+        -v hemi="${SAMPLE}.hemi.tmp.bed.gz" -v dip="${SAMPLE}.diploid.tmp.bed.gz" '
+        ($1==chr && $2>=start && $3<=end) {print | "gzip -c > " hemi}
+        !($1==chr && $2>=start && $3<=end) {print | "gzip -c > " dip}'
 
     "$TOOLS/MAVR/scripts/alignment/coverage/generate_mask_from_coverage_bed.py" \
-        -c ${SAMPLE}.diploid.tmp.bed -m "$COVERAGE" --max_coverage_threshold 2.5 --min_coverage_threshold 0.33 \
+        -c ${SAMPLE}.diploid.tmp.bed.gz -m "$COVERAGE" --max_coverage_threshold 2.5 --min_coverage_threshold 0.33 \
         -o ${SAMPLE}.diploid.mask.bed
 
     "$TOOLS/MAVR/scripts/alignment/coverage/generate_mask_from_coverage_bed.py" \
-        -c ${SAMPLE}.hemi.tmp.bed -m "$(awk -v cov=$COVERAGE 'BEGIN{print cov/2}')" \
+        -c ${SAMPLE}.hemi.tmp.bed.gz -m "$(awk -v cov=$COVERAGE 'BEGIN{print cov/2}')" \
         --max_coverage_threshold 2.5 --min_coverage_threshold 0.33 \
         -o ${SAMPLE}.hemi.mask.bed
 
     cat ${SAMPLE}.diploid.mask.bed ${SAMPLE}.hemi.mask.bed | sort -k1,1 -k2,2n > "${SAMPLE}.mask.max250.min33.bed"
-    # rm -f ${SAMPLE}.diploid.tmp.bed ${SAMPLE}.hemi.tmp.bed ${SAMPLE}.diploid.mask.bed ${SAMPLE}.hemi.mask.bed
+    # rm -f ${SAMPLE}.diploid.tmp.bed.gz ${SAMPLE}.hemi.tmp.bed.gz ${SAMPLE}.diploid.mask.bed ${SAMPLE}.hemi.mask.bed
 
 else
     echo "[INFO] $SAMPLE == FEMALE"
