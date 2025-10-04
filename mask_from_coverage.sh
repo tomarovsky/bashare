@@ -29,10 +29,6 @@ if grep -qw "$SAMPLE" "$MALES"; then
 
     # split per-base.bed.gz
     zcat "$PER_BASE_BED_FILE" | awk -v chr="$CHR" -v start="$START" -v end="$END" \
-        '($1==chr && $2>=start && $3<=end) {print > "${SAMPLE}.hemi.tmp.bed"} 
-         !($1==chr && $2>=start && $3<=end) {print > "${SAMPLE}.diploid.tmp.bed"}'
-
-    zcat "$PER_BASE_BED_FILE" | awk -v chr="$CHR" -v start="$START" -v end="$END" \
         -v hemi="${SAMPLE}.hemi.tmp.bed" -v dip="${SAMPLE}.diploid.tmp.bed" '
         ($1==chr && $2>=start && $3<=end) {print > hemi}
         !($1==chr && $2>=start && $3<=end) {print > dip}'
