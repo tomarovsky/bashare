@@ -10,13 +10,13 @@ if [[ $# -ne 3 ]]; then
     exit 1
 fi
 
-# Сортируем файлы через parallel
+# sort all input BED files
 echo "$BED_FILES" | tr ' ' '\n' | parallel -j "$THREADS" '
     echo 'Sorting {}'
     sort -k1,1 -k2,2n {} > {}.sorted.bed
 '
 
-# Получаем список отсортированных файлов
+# array of sorted BED files
 sorted_bed_files=()
 for bed in $BED_FILES; do
     sorted_bed_files+=("${bed}.sorted.bed")
@@ -25,6 +25,7 @@ done
 tmpdir="./tmp_intersect"
 mkdir -p "$tmpdir"
 
+# all pairwise combinations and compute intersections in parallel
 for i in "${!sorted_bed_files[@]}"; do
     for j in "${sorted_bed_files[@]:$((i+1))}"; do
         echo "${sorted_bed_files[i]} $j"
@@ -32,13 +33,16 @@ for i in "${!sorted_bed_files[@]}"; do
 done | parallel -j "$THREADS" '
     a={1}
     b={2}
-    tmpfile=${tmpdir}/${a%%.*}_${b%%.*}.intersect
+    a_sample=$(basename "${a}" | cut -d"." -f1)
+    b_sample=$(basename "${b}" | cut -d"." -f1)
+    tmpfile="'"$tmpdir"'/${a_sample}_${b_sample}.intersect"
+    echo \"Processing \$a vs \$b -> \$tmpfile\"
     bedtools intersect \
         -a "${a}" \
         -b "${b}" \
         -sorted > "$tmpfile"
 '
-
+# merge all intersection results and create final BED file
 bedtools merge -i <(cat "$tmpdir"/*.intersect | sort -k1,1 -k2,2n) > ${OUTPREFIX}.merge_all.intersect_2.mapq10.bed
 
 # rm -r "$tmpdir"
