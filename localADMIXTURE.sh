@@ -10,7 +10,7 @@ SCAFFOLDS=$3
 source $(conda info --base)/etc/profile.d/conda.sh
 
 if [[ $# -ne 3 ]]; then
-    echo "Usage: $0 "
+    echo "Usage: $0 VCF REGION_FILE 'SCAFFOLDS'"
     exit 1
 fi
 

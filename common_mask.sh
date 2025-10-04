@@ -1,4 +1,5 @@
 #!/bin/bash
+# Usage: 200 GB RAM
 # common_mask.sh BED_FILES OUTPREFIX THREADS
 # $TOOLS/bashare/common_mask.sh *.max250.min33 mzib 64
 
@@ -46,7 +47,7 @@ done | parallel -j "$THREADS" --colsep ' ' '
 '
 
 echo "Sorting..."
-sort --parallel="$THREADS" -T "${tmpdir}/tmp_sort" --merge -k1,1 -k2,2n "$tmpdir"/*.intersect > "$tmpdir/all_intersect.sorted.bed"
+sort -S 200G --parallel="$THREADS" -T "${tmpdir}/tmp_sort" --merge -k1,1 -k2,2n "$tmpdir"/*.intersect > "$tmpdir/all_intersect.sorted.bed"
 
 echo "Merging..."
 bedtools merge -i "$tmpdir/all_intersect.sorted.bed" > "${OUTPREFIX}.merge_all.intersect_2.mapq10.bed"
