@@ -32,7 +32,8 @@ if grep -qw "$SAMPLE" "$MALES"; then
 
     conda activate py38
     "$TOOLS/MAVR/scripts/alignment/coverage/generate_mask_from_coverage_bed.py" \
-        -c ${SAMPLE}.diploid.tmp.per-base.bed.gz -m "$COVERAGE" --max_coverage_threshold 2.5 --min_coverage_threshold 0.33 \
+        -c ${SAMPLE}.diploid.tmp.per-base.bed.gz -m "$COVERAGE" \
+        --max_coverage_threshold 2.5 --min_coverage_threshold 0.33 \
         -o ${SAMPLE}.diploid.per-base.mask.bed
 
     "$TOOLS/MAVR/scripts/alignment/coverage/generate_mask_from_coverage_bed.py" \
@@ -41,7 +42,7 @@ if grep -qw "$SAMPLE" "$MALES"; then
         -o ${SAMPLE}.hemi.per-base.mask.bed
 
     cat ${SAMPLE}.diploid.per-base.mask.bed ${SAMPLE}.hemi.per-base.mask.bed | sort -k1,1 -k2,2n > "${PER_BASE_BED_FILE%.*.*}.max250.min33.bed"
-    rm -f ${SAMPLE}.diploid.tmp.per-base.bed.gz ${SAMPLE}.hemi.tmp.per-base.bed.gz ${SAMPLE}.diploid.per-base.mask.bed ${SAMPLE}.hemi.per-base.mask.bed
+    # rm -f ${SAMPLE}.diploid.tmp.per-base.bed.gz ${SAMPLE}.hemi.tmp.per-base.bed.gz ${SAMPLE}.diploid.per-base.mask.bed ${SAMPLE}.hemi.per-base.mask.bed
 
 else
     echo "[INFO] $SAMPLE == FEMALE"
