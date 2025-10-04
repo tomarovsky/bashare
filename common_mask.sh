@@ -44,9 +44,12 @@ done | parallel -j "$THREADS" --colsep ' ' '
         -sorted > "$tmpfile"
 '
 
-# merge all intersection results and create final BED file
+echo "Sorting..."
+sort -k1,1 -k2,2n "$tmpdir"/*.intersect > "$tmpdir/all_intersect.sorted.bed"
+
 echo "Merging..."
-bedtools merge -i <(sort -k1,1 -k2,2n "$tmpdir"/*.intersect) > "${OUTPREFIX}.merge_all.intersect_2.mapq10.bed"
+bedtools merge -i "$tmpdir/all_intersect.sorted.bed" > "${OUTPREFIX}.merge_all.intersect_2.mapq10.bed"
 
 # cleanup temporary files
 rm -r "$tmpdir"
+
