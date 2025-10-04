@@ -51,6 +51,9 @@ sort --parallel="$THREADS" -T "${tmpdir}/tmp_sort" --merge -k1,1 -k2,2n "$tmpdir
 echo "Merging..."
 bedtools merge -i "$tmpdir/all_intersect.sorted.bed" > "${OUTPREFIX}.merge_all.intersect_2.mapq10.bed"
 
+echo "Total masked:"
+awk '{sum += $3 - $2} END {print sum}' "${OUTPREFIX}.merge_all.intersect_2.mapq10.bed"
+
 # cleanup temporary files
 rm -r "$tmpdir"
 
