@@ -12,7 +12,7 @@ if [[ $# -ne 1 ]]; then
 fi
 
 source $(conda info --base)/etc/profile.d/conda.sh
-conda activate python3.8
+conda activate py38
 
 $TOOLS/Biocrutch/scripts/Coverage/coverage_statistics.py -i $MOSDEPTH_BED -g -o ${MOSDEPTH_BED%.*.*.*}
 $TOOLS/Biocrutch/scripts/Coverage/coverage_statistics.py -i $MOSDEPTH_BED -n -f 1000000 -o ${MOSDEPTH_BED%.*.*.*}

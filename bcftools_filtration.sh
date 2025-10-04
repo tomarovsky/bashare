@@ -47,7 +47,7 @@ bcftools query -l $PREFIX.filt.masked.vcf.gz | parallel -j 6 '
     # bcftools filter --threads 10 -i "FMT/GT = \"hom\"" -O z -o ${SAMPLE}.$PREFIX.filt.masked.indel.homo.vcf.gz ${SAMPLE}.$PREFIX.filt.masked.indel.vcf.gz
 '
 
-conda deactivate && conda activate python3.8;
+conda deactivate && conda activate py38;
 
 echo "$(date) | Draw variant window densities"
 bcftools query -l $PREFIX.filt.masked.vcf.gz | parallel -j 64 '
@@ -59,10 +59,10 @@ bcftools query -l $PREFIX.filt.masked.vcf.gz | parallel -j 64 '
 
     $TOOLS/MACE/scripts/draw_variant_window_densities.py -i ${SAMPLE}.$PREFIX.filt.masked.snp.hetero.vcf.gz -o ${SAMPLE}.$PREFIX.filt.masked.snp.hetero.w100kb.s10kb -w 100000 -s 10000 -a $ASSEMBLY/*d.whitelist -z $ASSEMBLY/*d.orderedlist --scaffold_length_file $ASSEMBLY/*d.len --scaffold_syn_file $ASSEMBLY/*d.syn --syn_file_key_column 0 --syn_file_value_column 1 --only_count
 
-    $TOOLS/Biocrutch/scripts/ROH/get_ROH_regions.py -d 200000 -i ${SAMPLE}.$PREFIX.filt.masked.snp.hetero.w1mb.s100kb.features.bed -o ROH/${SAMPLE}.$PREFIX.filt.masked.snp.hetero.w1mb.s100kb.features.roh
+    $TOOLS/Biocrutch/scripts/ROH/get_ROH_regions.py -i ${SAMPLE}.$PREFIX.filt.masked.snp.hetero.w1mb.s100kb.features.bed -o ROH/${SAMPLE}.$PREFIX.filt.masked.snp.hetero.w1mb.s100kb.features.roh
     $TOOLS/MACE/scripts/draw_features.py -i ROH/${SAMPLE}.$PREFIX.filt.masked.snp.hetero.w1mb.s100kb.features.roh -o ROH/${SAMPLE}.$PREFIX.filt.masked.snp.hetero.w1mb.s100kb.features -t bed -l "ROHs for ${SAMPLE}" --scaffold_ordered_list $ASSEMBLY/*d.orderedlist --scaffold_length_file $ASSEMBLY/*d.len --scaffold_syn_file $ASSEMBLY/*d.syn --hide_track_label --rounded --subplots_adjust_left 0.2 --figure_width 10 --default_color "tab:blue" --centromere_bed $ASSEMBLY/*.centromere.bed
 
-    $TOOLS/Biocrutch/scripts/ROH/get_ROH_regions.py -d 200000 -i ${SAMPLE}.$PREFIX.filt.masked.snp.hetero.w100kb.s10kb.features.bed -o ROH/${SAMPLE}.$PREFIX.filt.masked.snp.hetero.w100kb.s10kb.features.roh
+    $TOOLS/Biocrutch/scripts/ROH/get_ROH_regions.py -i ${SAMPLE}.$PREFIX.filt.masked.snp.hetero.w100kb.s10kb.features.bed -o ROH/${SAMPLE}.$PREFIX.filt.masked.snp.hetero.w100kb.s10kb.features.roh
     $TOOLS/MACE/scripts/draw_features.py -i ROH/${SAMPLE}.$PREFIX.filt.masked.snp.hetero.w100kb.s10kb.features.roh -o ROH/${SAMPLE}.$PREFIX.filt.masked.snp.hetero.w100kb.s10kb.features -t bed -l "ROHs for ${SAMPLE}" --scaffold_ordered_list $ASSEMBLY/*d.orderedlist --scaffold_length_file $ASSEMBLY/*d.len --scaffold_syn_file $ASSEMBLY/*d.syn --hide_track_label --rounded --subplots_adjust_left 0.2 --figure_width 10  --default_color "tab:blue" --centromere_bed $ASSEMBLY/*.centromere.bed
 '
 

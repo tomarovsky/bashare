@@ -12,7 +12,7 @@ if [[ $# -ne 2 ]]; then
 fi
 
 source $(conda info --base)/etc/profile.d/conda.sh
-conda activate python3.8
+conda activate py38
 
 $TOOLS/latest_mahajrod/scripts/draw_coverage.py \
     -i ${WINDOWS_STATS_CSV} \

@@ -4,7 +4,7 @@
 # $TOOLS/bashare/bcftools_varcall.sh /path/to/genomic.fasta "/path/to/S1.bam /path/to/S2.bam /path/to/S3.bam" prefix
 
 source $(conda info --base)/etc/profile.d/conda.sh
-conda activate python3.8
+conda activate py38
 
 ASSEMBLY=$1
 BAM_FILES=$2 # space separated
