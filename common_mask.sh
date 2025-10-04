@@ -37,7 +37,7 @@ done | parallel -j "$THREADS" --colsep ' ' '
     a_sample=$(basename "${a}" | cut -d"." -f1)
     b_sample=$(basename "${b}" | cut -d"." -f1)
     tmpfile="'"$tmpdir"'/${a_sample}_${b_sample}.intersect"
-    echo "Processing $a vs $b -> $tmpfile"
+    echo "Processing ${a_sample} vs ${b_sample} -> $tmpfile"
     bedtools intersect \
         -a "${a}" \
         -b "${b}" \
@@ -45,7 +45,8 @@ done | parallel -j "$THREADS" --colsep ' ' '
 '
 
 # merge all intersection results and create final BED file
+echo "Merging..."
 bedtools merge -i <(cat "$tmpdir"/*.intersect | sort -k1,1 -k2,2n) > "${OUTPREFIX}.merge_all.intersect_2.mapq10.bed"
 
-# Optional: cleanup temporary files
+# cleanup temporary files
 rm -r "$tmpdir"
