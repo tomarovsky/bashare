@@ -1,6 +1,7 @@
 #!/bin/bash
 # Usage:
-# $TOOLS/bashare/mask_from_coverage.sh PER_BASE_BED_FILE COVERAGE MALES "HEMI_REGION_COORDS"
+# $TOOLS/bashare/mask_from_coverage.sh PER_BASE_BED_FILE COVERAGE MALES HEMI_REGIONS_BED
+# $TOOLS/bashare/mask_from_coverage.sh S49.mzib.hic.purged.mkdup.mapq10.per-base.bed.gz $(cat S49/*.mapq10_whole_genome_stats.csv | sed -n 2p | awk '{print $2}') males.txt hemi_regions.bed
 
 set -euo pipefail
 
@@ -11,28 +12,25 @@ fi
 
 PER_BASE_BED_FILE=$1 # mosdepth.per-base.bed.gz
 COVERAGE=$2 # $(cat *.mapq20_whole_genome_stats.csv | sed -n 2p | awk '{print $2}')
-MALES=$3 # txt file
-HEMI_REGION_COORDS=$4 # HiC_scaffold_19:6680001-124421298
+MALES=$3 # sample per line
+HEMI_REGIONS_BED=$4 # BED with hemizygous regions
 
 SAMPLE=$(basename "$PER_BASE_BED_FILE" | cut -d. -f1)
 
 source $(conda info --base)/etc/profile.d/conda.sh
-conda activate py38
 
 if grep -qw "$SAMPLE" "$MALES"; then
     echo "[INFO] $SAMPLE == MALE"
 
-    # scaffold:start-end
-    CHR=$(echo "$HEMI_REGION_COORDS" | cut -d: -f1)
-    START=$(echo "$HEMI_REGION_COORDS" | cut -d: -f2 | cut -d- -f1)
-    END=$(echo "$HEMI_REGION_COORDS" | cut -d: -f2 | cut -d- -f2)
+    HEMI_TMP="${SAMPLE}.hemi.tmp.per-base.bed.gz"
+    DIP_TMP="${SAMPLE}.diploid.tmp.per-base.bed.gz"
 
-    # split per-base.bed.gz
-    zcat "$PER_BASE_BED_FILE" | awk -v chr="$CHR" -v start="$START" -v end="$END" \
-        -v hemi="${SAMPLE}.hemi.tmp.per-base.bed.gz" -v dip="${SAMPLE}.diploid.tmp.per-base.bed.gz" '
-        ($1==chr && $2>=start && $3<=end) {print | "gzip -c > " hemi}
-        !($1==chr && $2>=start && $3<=end) {print | "gzip -c > " dip}'
+    conda activate varcall
+    bedtools intersect -a <(zcat "$PER_BASE_BED_FILE") -b "$HEMI_REGIONS_BED" | gzip > "$HEMI_TMP"
+    bedtools intersect -v -a <(zcat "$PER_BASE_BED_FILE") -b "$HEMI_REGIONS_BED" | gzip > "$DIP_TMP"
+    conda deactivate
 
+    conda activate py38
     "$TOOLS/MAVR/scripts/alignment/coverage/generate_mask_from_coverage_bed.py" \
         -c ${SAMPLE}.diploid.tmp.per-base.bed.gz -m "$COVERAGE" --max_coverage_threshold 2.5 --min_coverage_threshold 0.33 \
         -o ${SAMPLE}.diploid.per-base.mask.bed
@@ -43,7 +41,7 @@ if grep -qw "$SAMPLE" "$MALES"; then
         -o ${SAMPLE}.hemi.per-base.mask.bed
 
     cat ${SAMPLE}.diploid.per-base.mask.bed ${SAMPLE}.hemi.per-base.mask.bed | sort -k1,1 -k2,2n > "${PER_BASE_BED_FILE%.*.*}.max250.min33.bed"
-    # rm -f ${SAMPLE}.diploid.tmp.per-base.bed.gz ${SAMPLE}.hemi.tmp.per-base.bed.gz ${SAMPLE}.diploid.per-base.mask.bed ${SAMPLE}.hemi.per-base.mask.bed
+    rm -f ${SAMPLE}.diploid.tmp.per-base.bed.gz ${SAMPLE}.hemi.tmp.per-base.bed.gz ${SAMPLE}.diploid.per-base.mask.bed ${SAMPLE}.hemi.per-base.mask.bed
 
 else
     echo "[INFO] $SAMPLE == FEMALE"
