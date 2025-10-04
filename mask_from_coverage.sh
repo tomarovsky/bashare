@@ -20,7 +20,7 @@ source $(conda info --base)/etc/profile.d/conda.sh
 conda activate py38
 
 if grep -qw "$SAMPLE" "$MALES"; then
-    echo "[INFO] $SAMPLE == FEMALE"
+    echo "[INFO] $SAMPLE == MALE"
 
     # scaffold:start-end
     CHR=$(echo "$HEMI_REGION_COORDS" | cut -d: -f1)
@@ -32,12 +32,17 @@ if grep -qw "$SAMPLE" "$MALES"; then
         '($1==chr && $2>=start && $3<=end) {print > "${SAMPLE}.hemi.tmp.bed"} 
          !($1==chr && $2>=start && $3<=end) {print > "${SAMPLE}.diploid.tmp.bed"}'
 
+    zcat "$PER_BASE_BED_FILE" | awk -v chr="$CHR" -v start="$START" -v end="$END" \
+        -v hemi="${SAMPLE}.hemi.tmp.bed" -v dip="${SAMPLE}.diploid.tmp.bed" '
+        ($1==chr && $2>=start && $3<=end) {print > hemi}
+        !($1==chr && $2>=start && $3<=end) {print > dip}'
+
     "$TOOLS/MAVR/scripts/alignment/coverage/generate_mask_from_coverage_bed.py" \
         -c ${SAMPLE}.diploid.tmp.bed -m "$COVERAGE" --max_coverage_threshold 2.5 --min_coverage_threshold 0.33 \
         -o ${SAMPLE}.diploid.mask.bed
 
     "$TOOLS/MAVR/scripts/alignment/coverage/generate_mask_from_coverage_bed.py" \
-        -c ${SAMPLE}.hemi.tmp.bed -m "$(awk -v c=$COVERAGE 'BEGIN{print c/2}')" \
+        -c ${SAMPLE}.hemi.tmp.bed -m "$(awk -v cov=$COVERAGE 'BEGIN{print cov/2}')" \
         --max_coverage_threshold 2.5 --min_coverage_threshold 0.33 \
         -o ${SAMPLE}.hemi.mask.bed
 
@@ -45,7 +50,7 @@ if grep -qw "$SAMPLE" "$MALES"; then
     # rm -f ${SAMPLE}.diploid.tmp.bed ${SAMPLE}.hemi.tmp.bed ${SAMPLE}.diploid.mask.bed ${SAMPLE}.hemi.mask.bed
 
 else
-    echo "[INFO] $SAMPLE == MALE"
+    echo "[INFO] $SAMPLE == FEMALE"
 
     "$TOOLS/MAVR/scripts/alignment/coverage/generate_mask_from_coverage_bed.py" \
         -c "$PER_BASE_BED_FILE" -m "$COVERAGE" --max_coverage_threshold 2.5 --min_coverage_threshold 0.33 \
