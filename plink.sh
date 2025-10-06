@@ -24,7 +24,7 @@ plink --vcf $VCF --out ${OUTPREFIX}.prefiltered \
     --maf 0.03 \
     --snps-only \
     --make-bed \
-    --threads $THREADS
+    --threads $THREADS |& tee -a ${OUTPREFIX}.1.log
 
 # to fix 'HiC_scaffold_' naming
 cat ${OUTPREFIX}.prefiltered.bim | awk -F '_' '{print $3"_"$4"_"$5}' > ${OUTPREFIX}.prefiltered.bim.tmp
@@ -34,12 +34,12 @@ mv ${OUTPREFIX}.prefiltered.bim.tmp ${OUTPREFIX}.prefiltered.bim
 # Step 2: LD pruning
 plink --bfile ${OUTPREFIX}.prefiltered --out ${OUTPREFIX} \
     --indep-pairwise 50 10 $LD \
-    --threads $THREADS
+    --threads $THREADS |& tee -a ${OUTPREFIX}.2.log
 
 # Step 3: PCA
 plink --bfile ${OUTPREFIX}.prefiltered --out ${OUTPREFIX} \
     --extract ${OUTPREFIX}.prune.in \
     --pca \
     --make-bed \
-    --threads $THREADS
+    --threads $THREADS |& tee -a ${OUTPREFIX}.3.log
 
