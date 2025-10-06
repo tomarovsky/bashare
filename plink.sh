@@ -15,25 +15,31 @@ if [[ $# -ne 4 ]]; then
     exit 1
 fi
 
-plink --vcf $VCF --out ${OUTPREFIX} \
+# Step 1: geno and maf
+plink --vcf $VCF --out ${OUTPREFIX}.prefiltered \
     --double-id \
     --allow-extra-chr \
     --set-missing-var-ids @:# \
-    --indep-pairwise 50 10 $LD \
-    --threads $THREADS
-
-plink --vcf $VCF --out ${OUTPREFIX} \
-    --allow-extra-chr \
-    --set-missing-var-ids @:# \
-    --extract ${OUTPREFIX}.prune.in \
-    --geno 0 \
+    --geno 0.05 \
     --maf 0.03 \
     --snps-only \
-    --pca \
     --make-bed \
     --threads $THREADS
 
 # to fix 'HiC_scaffold_' naming
-cat ${OUTPREFIX}.bim | awk -F '_' '{print $3"_"$4"_"$5}' > ${OUTPREFIX}.bim.tmp
-mv ${OUTPREFIX}.bim ${OUTPREFIX}.bim.raw
-mv ${OUTPREFIX}.bim.tmp ${OUTPREFIX}.bim
+cat ${OUTPREFIX}.prefiltered.bim | awk -F '_' '{print $3"_"$4"_"$5}' > ${OUTPREFIX}.prefiltered.bim.tmp
+mv ${OUTPREFIX}.prefiltered.bim ${OUTPREFIX}.prefiltered.bim.raw
+mv ${OUTPREFIX}.prefiltered.bim.tmp ${OUTPREFIX}.prefiltered.bim
+
+# Step 2: LD pruning
+plink --bfile ${OUTPREFIX}.prefiltered --out ${OUTPREFIX} \
+    --indep-pairwise 50 10 $LD \
+    --threads $THREADS
+
+# Step 3: PCA
+plink --bfile ${OUTPREFIX}.prefiltered --out ${OUTPREFIX} \
+    --extract ${OUTPREFIX}.prune.in \
+    --pca \
+    --make-bed \
+    --threads $THREADS
+
