@@ -54,4 +54,3 @@ singularity run --bind "$BIND_DIRS" --pwd "$(pwd)" $SIF \
     --num_shards=64
     # --regions "chr20:10,000,000-10,010,000" \
     # --intermediate_results_dir "${OUTPUT_DIR}/intermediate_results_dir" \
-

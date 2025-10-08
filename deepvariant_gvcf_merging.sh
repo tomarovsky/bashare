@@ -14,4 +14,3 @@ if [[ $# -ne 2 ]]; then
 fi
 
 glnexus_cli --config DeepVariantWES ${GVCF_GZ_FILES} | bcftools view - -O z -o ${OUTPUT_PREFIX}.vcf.gz
-

@@ -57,4 +57,3 @@ awk '{sum += $3 - $2} END {print sum}' "${OUTPREFIX}.merge_all.intersect_2.mapq1
 
 # cleanup temporary files
 rm -r "$tmpdir"
-

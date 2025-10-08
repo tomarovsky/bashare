@@ -16,4 +16,3 @@ conda activate py38
 
 $TOOLS/Biocrutch/scripts/Coverage/coverage_statistics.py -i $MOSDEPTH_BED -g -o ${MOSDEPTH_BED%.*.*.*}
 $TOOLS/Biocrutch/scripts/Coverage/coverage_statistics.py -i $MOSDEPTH_BED -n -f 1000000 -o ${MOSDEPTH_BED%.*.*.*}
-

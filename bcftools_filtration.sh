@@ -31,8 +31,9 @@ echo "$(date) | VCF masking"
 bedtools intersect -header -v -a $PREFIX.filt.vcf -b ${MASK} > $PREFIX.filt.masked.vcf
 
 echo "$(date) | VCF to VCF.gz"
-bcftools view --threads 30 -O z -o $PREFIX.filt.vcf.gz $PREFIX.filt.vcf
-bcftools view --threads 30 -O z -o $PREFIX.filt.masked.vcf.gz $PREFIX.filt.masked.vcf
+bcftools view --threads 30 -O z -o $PREFIX.filt.vcf.gz $PREFIX.filt.vcf &
+bcftools view --threads 30 -O z -o $PREFIX.filt.masked.vcf.gz $PREFIX.filt.masked.vcf &
+wait
 
 echo "$(date) | Sample separation"
 bcftools query -l $PREFIX.filt.masked.vcf.gz | parallel -j 6 '
@@ -52,7 +53,7 @@ conda deactivate && conda activate py38;
 echo "$(date) | Draw variant window densities"
 bcftools query -l $PREFIX.filt.masked.vcf.gz | parallel -j 64 '
     SAMPLE={}
-    echo "Sample: ${SAMPLE} (Sex: F)"
+    echo "Sample: ${SAMPLE}"
     $TOOLS/MACE/scripts/draw_variant_window_densities.py -i ${SAMPLE}.$PREFIX.filt.masked.snp.hetero.vcf.gz -o ${SAMPLE}.$PREFIX.filt.masked.snp.hetero.w1mb.s100kb -l "HeteroSNP densities for ${SAMPLE}" -w 1000000 -s 100000 --scaffold_white_list $ASSEMBLY/*d.whitelist -z $ASSEMBLY/*d.orderedlist --scaffold_length_file $ASSEMBLY/*d.len --scaffold_syn_file $ASSEMBLY/*d.syn --syn_file_key_column 0 --syn_file_value_column 1 --hide_track_label --density_thresholds 0,0.1,0.5,1,2,3,4,5,6,7 --rounded --subplots_adjust_left 0.2 --centromere_bed $ASSEMBLY/*.centromere.bed
 
     $TOOLS/MACE/scripts/draw_variant_window_densities.py -i ${SAMPLE}.$PREFIX.filt.masked.snp.homo.vcf.gz -o ${SAMPLE}.$PREFIX.filt.masked.snp.homo.w1mb.s100kb -l "HomoSNP densities for ${SAMPLE}" -w 1000000 -s 100000 --scaffold_white_list $ASSEMBLY/*d.whitelist -z $ASSEMBLY/*d.orderedlist --scaffold_length_file $ASSEMBLY/*d.len --scaffold_syn_file $ASSEMBLY/*d.syn --syn_file_key_column 0 --syn_file_value_column 1 --hide_track_label --density_thresholds 0,0.1,0.5,1,2,3,4,5,6,7 --rounded --subplots_adjust_left 0.2 --centromere_bed $ASSEMBLY/*.centromere.bed
@@ -65,6 +66,3 @@ bcftools query -l $PREFIX.filt.masked.vcf.gz | parallel -j 64 '
     $TOOLS/Biocrutch/scripts/ROH/get_ROH_regions.py -i ${SAMPLE}.$PREFIX.filt.masked.snp.hetero.w100kb.s10kb.features.bed -o ROH/${SAMPLE}.$PREFIX.filt.masked.snp.hetero.w100kb.s10kb.features.roh
     $TOOLS/MACE/scripts/draw_features.py -i ROH/${SAMPLE}.$PREFIX.filt.masked.snp.hetero.w100kb.s10kb.features.roh -o ROH/${SAMPLE}.$PREFIX.filt.masked.snp.hetero.w100kb.s10kb.features -t bed -l "ROHs for ${SAMPLE}" --scaffold_ordered_list $ASSEMBLY/*d.orderedlist --scaffold_length_file $ASSEMBLY/*d.len --scaffold_syn_file $ASSEMBLY/*d.syn --hide_track_label --rounded --subplots_adjust_left 0.2 --figure_width 10  --default_color "tab:blue" --centromere_bed $ASSEMBLY/*.centromere.bed
 '
-
-
-
