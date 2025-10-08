@@ -49,4 +49,3 @@ else
         -c "$PER_BASE_BED_FILE" -m "$COVERAGE" --max_coverage_threshold 2.5 --min_coverage_threshold 0.33 \
         -o "${PER_BASE_BED_FILE%.*.*}.max250.min33.bed"
 fi
-

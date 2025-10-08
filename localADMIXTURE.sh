@@ -1,7 +1,7 @@
 #!/bin/bash
 # Usage:
 # $TOOLS/bashare/localADMIXTURE.sh VCF REGION_FILE "SCAFFOLDS"
-# for S in {1..19}; do $TOOLS/bashare/localADMIXTURE.v2.sh /mnt/tank/scratch/skliver/common/mustelidae/martes_martes/genome/admixture/0.2/mmar.allsamples.filt.mapq10.max250.min33.intersect.2.merge.all.snp.autosomes_and_PAR.plink.0.2.vcf.gz /mnt/tank/scratch/skliver/common/mustelidae/martes_zibellina/genome/admixture/LD_test/mzib.w1mb.s100kb.autosomes_and_PAR.num.bed $S > /dev/null 2>&1 & done
+# for S in {1..19}; do $TOOLS/bashare/localADMIXTURE.sh /mnt/tank/scratch/skliver/common/mustelidae/martes_martes/genome/admixture/0.2/mmar.allsamples.filt.mapq10.max250.min33.intersect.2.merge.all.snp.autosomes_and_PAR.plink.0.2.vcf.gz /mnt/tank/scratch/skliver/common/mustelidae/martes_zibellina/genome/admixture/LD_test/mzib.w1mb.s100kb.autosomes_and_PAR.num.bed $S > /dev/null 2>&1 & done
 
 VCF=$1 # absolute path
 REGION_FILE=$2 # absolute path
