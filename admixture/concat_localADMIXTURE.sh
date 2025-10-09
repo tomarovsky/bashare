@@ -35,8 +35,12 @@ process_sample() {
 
     for scaf in "${SCAFFOLDS[@]}"; do
         local file="${scaf}/${idx}.${scaf}.admixture.concat.Q"
-        [[ -f "$file" ]] || { echo "Warning: missing $file" >&2; continue; }
-        awk -v chr="$scaf" -v prefix="$SCAFFOLD_PREFIX" 'BEGIN{OFS="\t"} {print prefix chr, $1, $2, $3}' "$file" >> "$outfile"
+        if [[ -f "$file" ]]; then
+            echo "Found: $file"
+            awk -v scaf="$scaf" -v prefix="$SCAFFOLD_PREFIX" 'BEGIN{OFS="\t"} {print prefix scaf, $2, $3, $4}' "$file" >> "$outfile"
+        else
+            echo "Warning: missing $file" >&2
+        fi
     done
 }
 
