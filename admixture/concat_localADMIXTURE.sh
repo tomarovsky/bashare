@@ -18,6 +18,8 @@ mkdir -p figures/
 
 mapfile -t SAMPLES < <(conda run -n varcall bcftools query -l "$VCF")
 mapfile -t SCAFFOLDS < <(awk '{print $1}' "$REGION_FILE" | sort | uniq)
+echo $SAMPLES
+echo $SCAFFOLDS
 
 export SCAFFOLDS
 export SCAFFOLD_PREFIX
@@ -31,8 +33,6 @@ process_sample() {
     echo "Processing $sample (index $idx)"
 
     for scaf in "${SCAFFOLDS[@]}"; do
-        echo $sample;
-        echo $scaf;
         local file="${scaf}/${idx}.${SCAFFOLD_PREFIX}${scaf}.admixture.concat.Q"
         [[ -f "$file" ]] || { echo "Warning: missing $file" >&2; continue; }
         awk -v chr="$scaf" -v sample="$sample" -v prefix="$SCAFFOLD_PREFIX" 'BEGIN{OFS="\t"} {print prefix chr, $1, $2, $3, sample}' "$file" >> "$outfile"
