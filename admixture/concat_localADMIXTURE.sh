@@ -12,7 +12,7 @@ REGION_FILE=$2
 THREADS=${3:-18}
 SCAFFOLD_PREFIX=${4:-"HiC_scaffold_"}
 
-source $(conda info --base)/etc/profile.d/conda.sh
+source "$(conda info --base)/etc/profile.d/conda.sh"
 
 mkdir -p figures/
 
@@ -33,17 +33,17 @@ process_sample() {
 
     echo "Processing $sample (index $idx)"
 
-    for scaf in "${SCAFFOLDS[@]}"; do
+    for scaf in ${SCAFFOLDS[@]}; do
         local file="${scaf}/${idx}.${scaf}.admixture.concat.Q"
         if [[ -f "$file" ]]; then
             echo "Found: $file"
             awk -v scaf="$scaf" -v prefix="$SCAFFOLD_PREFIX" 'BEGIN{OFS="\t"} {print prefix scaf, $2, $3, $4}' "$file" >> "$outfile"
         else
-            echo "Warning: missing $file" >&2
+            echo "Missing: $file" >&2
         fi
     done
 }
 
 export -f process_sample
 
-parallel -j "$THREADS" process_sample {1} {#} ::: "${SAMPLES[@]}"
+parallel --env SCAFFOLDS --env SCAFFOLD_PREFIX -j "$THREADS" process_sample {1} {#} ::: "${SAMPLES[@]}"
