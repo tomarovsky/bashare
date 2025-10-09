@@ -16,8 +16,8 @@ source "$(conda info --base)/etc/profile.d/conda.sh"
 
 mkdir -p figures/
 
-SAMPLES=($(conda run -n varcall bcftools query -l "$VCF"))
-SCAFFOLDS=($(awk '{print $1}' "$REGION_FILE" | sort | uniq))
+SAMPLES=$(conda run -n varcall bcftools query -l "$VCF")
+SCAFFOLDS=$(awk '{print $1}' "$REGION_FILE" | sort | uniq | tr '\n' ' ')
 
 echo "Samples: ${SAMPLES[@]}"
 echo "Scaffolds: ${SCAFFOLDS[@]}"
@@ -46,4 +46,4 @@ process_sample() {
 
 export -f process_sample
 
-parallel --env SCAFFOLDS --env SCAFFOLD_PREFIX -j "$THREADS" process_sample {1} {#} ::: "${SAMPLES[@]}"
+parallel -j "$THREADS" process_sample {1} {#} ::: "${SAMPLES[@]}"
