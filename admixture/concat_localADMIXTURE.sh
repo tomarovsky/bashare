@@ -17,8 +17,8 @@ fi
 
 mkdir -p figures/
 
-mapfile -t SAMPLES < <(conda run -n varcall bcftools query -l "$VCF")
-mapfile -t SCAFFOLDS < <(awk '{print $1}' "$REGION_FILE" | sort | uniq)
+mapfile -t SAMPLES < <(conda run -n varcall bcftools query -l $VCF)
+mapfile -t SCAFFOLDS < <(awk '{print $1}' $REGION_FILE | sort | uniq)
 
 export SCAFFOLDS
 export SCAFFOLD_PREFIX
