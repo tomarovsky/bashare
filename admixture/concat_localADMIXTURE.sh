@@ -1,6 +1,11 @@
 #!/bin/bash
-
 set -euo pipefail
+
+if [[ $# -lt 2 || $# -gt 4 ]]; then
+    echo "Usage: $0 VCF_FILE REGION_FILE [THREADS] [SCAFFOLD_PREFIX]"
+    echo "Example: $0 mzib.allsamples.filt.masked.auto.snp.vcf.gz mzib.w1mb.s100kb.features.auto.num.bed 18 \"HiC_scaffold_\""
+    exit 1
+fi
 
 VCF=$1
 REGION_FILE=$2
@@ -9,16 +14,10 @@ SCAFFOLD_PREFIX=${4:-"HiC_scaffold_"}
 
 source $(conda info --base)/etc/profile.d/conda.sh
 
-if [[ $# -lt 2 || $# -gt 4 ]]; then
-    echo "Usage: $0 VCF_FILE REGION_FILE [THREADS] [SCAFFOLD_PREFIX]"
-    echo "Example: $0 mzib.allsamples.filt.masked.auto.snp.vcf.gz mzib.w1mb.s100kb.features.auto.num.bed 18 \"HiC_scaffold_\""
-    exit 1
-fi
-
 mkdir -p figures/
 
-mapfile -t SAMPLES < <(conda run -n varcall bcftools query -l $VCF)
-mapfile -t SCAFFOLDS < <(awk '{print $1}' $REGION_FILE | sort | uniq)
+mapfile -t SAMPLES < <(conda run -n varcall bcftools query -l "$VCF")
+mapfile -t SCAFFOLDS < <(awk '{print $1}' "$REGION_FILE" | sort | uniq)
 
 export SCAFFOLDS
 export SCAFFOLD_PREFIX
