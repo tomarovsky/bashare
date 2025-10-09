@@ -3,7 +3,6 @@
 # $TOOLS/bashare/localADMIXTURE.sh VCF REGION_FILE "SCAFFOLDS"
 # for S in {1..18}; do $TOOLS/bashare/localADMIXTURE.sh mzib.allsamples.filt.masked.auto.snp.plink.0.2.vcf.gz mzib.w1mb.s100kb.features.auto.num.bed $S > /dev/null 2>&1 & done
 
-
 VCF=$1 # absolute path
 REGION_FILE=$2 # absolute path
 SCAFFOLDS=$3
@@ -32,7 +31,7 @@ for CHR in $SCAFFOLDS; do
             conda deactivate && conda activate admixture;
             admixture -j1 --cv ${CHR}.${REGION}.plink.bed 2 | tee ${CHR}.${REGION}.admixture.log;
             for SAMPLE in {1..33}; do
-                ADMIXTURE_OUTLINE=$(sed "${SAMPLE}q;d" ${CHR}.${REGION}.plink.2.Q | awk '{print $1"\t"$2}');
+                ADMIXTURE_OUTLINE=$(sed "${SAMPLE}q;d" ${CHR}.${REGION}.plink.2.Q | awk '{print $1}'); # $1"\t"$2 for both
                 echo $ADMIXTURE_OUTLINE;
                 echo -e "HiC_scaffold_${REG}\t${ADMIXTURE_OUTLINE}" >> ${SAMPLE}.HiC_scaffold_${CHR}.admixture.concat.Q;
             done;
