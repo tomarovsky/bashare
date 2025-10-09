@@ -22,8 +22,7 @@ SCAFFOLDS=$(awk '{print $1}' "$REGION_FILE" | sort | uniq | tr '\n' ' ')
 echo "Samples: ${SAMPLES[@]}"
 echo "Scaffolds: ${SCAFFOLDS[@]}"
 
-export SCAFFOLDS
-export SCAFFOLD_PREFIX
+export SCAFFOLDS SCAFFOLD_PREFIX
 
 process_sample() {
     local sample="$1"
