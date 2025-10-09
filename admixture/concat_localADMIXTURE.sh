@@ -16,8 +16,8 @@ source $(conda info --base)/etc/profile.d/conda.sh
 
 mkdir -p figures/
 
-mapfile -t SAMPLES < <(conda run -n varcall bcftools query -l "$VCF")
-mapfile -t SCAFFOLDS < <(awk '{print $1}' "$REGION_FILE" | sort | uniq)
+mapfile -t SAMPLES < <(conda run -n varcall bcftools query -l "$VCF" | tr '\n' ' ')
+mapfile -t SCAFFOLDS < <(awk '{print $1}' "$REGION_FILE" | sort | uniq | tr '\n' ' ')
 echo $SAMPLES
 echo $SCAFFOLDS
 
