@@ -1,8 +1,13 @@
 #!/bin/bash
-# Usage:
-# $TOOLS/bashare/reverse_BED_values.sh BED HiC_scaffold_2,HiC_scaffold_4 > output.bed
 
 set -euo pipefail
+
+if [[ $# -ne 2 ]]; then
+    echo "Usage: $0 BED_FILE REVERSE_LIST"
+    echo "Example: $0 mmar.localADMIXTURE.0.2.snp400.cov75kb.mask.bed HiC_scaffold_2,HiC_scaffold_4"
+    echo "NB! '_rc' was added to the scaffold name to indicate that the scaffold values were reversed."
+    exit 1
+fi
 
 BED_FILE="$1"
 REVERSE_LIST="$2"
