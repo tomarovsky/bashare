@@ -16,7 +16,7 @@ DIFF=$3
 
 # mamba create -n triangular -c conda-forge r-base r-vcfr r-devtools; devtools::install_github("omys-omics/triangulaR")
 source $(conda info --base)/etc/profile.d/conda.sh
-conda activate triangulaR
+conda activate triangular
 
 Rscript --vanilla - <<EOF
 library(triangulaR)
