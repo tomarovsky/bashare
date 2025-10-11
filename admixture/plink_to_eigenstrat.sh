@@ -24,4 +24,4 @@ EOF
 
 # Run conversion
 echo "[INFO] PLINK → EIGENSTRAT..."
-convertf -p "$PARFILE" > "${OUTDIR}/${BASENAME}.convertf.log"
+convertf -p "$PARFILE" > "${PLINK_PREFIX}.convertf.log"
