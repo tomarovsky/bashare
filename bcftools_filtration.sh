@@ -25,15 +25,10 @@ source $(conda info --base)/etc/profile.d/conda.sh
 conda activate varcall
 
 echo "$(date) | VCF filtration"
-bcftools filter --threads 30 -S . -O v -o $PREFIX.filt.vcf --exclude 'QUAL < 20.0 || (FORMAT/SP > 60.0 | FORMAT/DP < 5.0 | FORMAT/GQ < 20.0)' ../${VCF}
+bcftools filter --threads 30 -S . -O z -o $PREFIX.filt.vcf.gz --exclude 'QUAL < 20.0 || (FORMAT/SP > 60.0 | FORMAT/DP < 5.0 | FORMAT/GQ < 20.0)' ../${VCF}
 
 echo "$(date) | VCF masking"
-bedtools intersect -header -v -a $PREFIX.filt.vcf -b ${MASK} > $PREFIX.filt.masked.vcf
-
-echo "$(date) | VCF to VCF.gz"
-bcftools view --threads 30 -O z -o $PREFIX.filt.vcf.gz $PREFIX.filt.vcf &
-bcftools view --threads 30 -O z -o $PREFIX.filt.masked.vcf.gz $PREFIX.filt.masked.vcf &
-wait
+bedtools intersect -header -v -a ${PREFIX}.filt.vcf.gz -b ${MASK} | bgzip -c > ${PREFIX}.filt.mask.vcf.gz
 
 echo "$(date) | Sample separation"
 bcftools query -l $PREFIX.filt.masked.vcf.gz | parallel -j 6 '
