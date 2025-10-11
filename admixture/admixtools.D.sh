@@ -73,4 +73,4 @@ qpDstat -p <(sed "s/popfilename:.*/popfilename: ${TMPDIR}\/popfile_temp.txt/" "$
 echo "Результаты сохранены: $OUTFILE"
 
 # --- Уборка ---
-rm -r "$TMPDIR"
+# rm -r "$TMPDIR"
