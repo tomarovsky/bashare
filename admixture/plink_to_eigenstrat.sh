@@ -9,18 +9,18 @@ fi
 PLINK_PREFIX="$1"
 
 source $(conda info --base)/etc/profile.d/conda.sh
-conda activate admixture
+conda activate admixtools
 
 # Create parameter file for convertf
 PARFILE="plink_to_eigenstrat.par"
 cat > "$PARFILE" <<EOF
-genotypename:   ${PLINK_PREFIX}.bed
-snpname:        ${PLINK_PREFIX}.bim
-indivname:      ${PLINK_PREFIX}.fam
-outputformat:   EIGENSTRAT
+genotypename:    ${PLINK_PREFIX}.bed
+snpname:         ${PLINK_PREFIX}.bim
+indivname:       ${PLINK_PREFIX}.fam
+outputformat:    EIGENSTRAT
 genotypeoutname: ${PLINK_PREFIX}.geno
-snpoutname:     ${PLINK_PREFIX}.snp
-indivoutname:   ${PLINK_PREFIX}.ind
+snpoutname:      ${PLINK_PREFIX}.snp
+indivoutname:    ${PLINK_PREFIX}.ind
 EOF
 
 # Run conversion
