@@ -8,7 +8,8 @@ fi
 
 PLINK_PREFIX="$1"
 
-export PATH=${PATH}:/mnt/tank/scratch/atomarovsky/tools/AdmixTools-7.0.2/bin
+source $(conda info --base)/etc/profile.d/conda.sh
+conda activate admixture
 
 # Create parameter file for convertf
 PARFILE="plink_to_eigenstrat.par"
