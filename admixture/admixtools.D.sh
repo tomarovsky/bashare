@@ -67,8 +67,9 @@ echo "=== Расчёт D-статистики для гибрида $HYBRID ==="
 OUTFILE="Dstat_${HYBRID}_vs_mzib_mmar.txt"
 
 # временно заменяем "hybrid" на имя гибрида в poplist
-sed "s/hybrid/$HYBRID/" "$POPFILE" > "${TMPDIR}/popfile_temp.txt"
-qpDstat -p <(sed "s/popfilename:.*/popfilename: ${TMPDIR}\/popfile_temp.txt/" "$PARFILE") > "$OUTFILE"
+# sed "s/hybrid/$HYBRID/" "$POPFILE" > "${TMPDIR}/popfile_temp.txt"
+# qpDstat -p <(sed "s/popfilename:.*/popfilename: ${TMPDIR}\/popfile_temp.txt/" "$PARFILE") > "$OUTFILE"
+qpDstat -p "$PARFILE" > "$OUTFILE"
 
 echo "Результаты сохранены: $OUTFILE"
 
