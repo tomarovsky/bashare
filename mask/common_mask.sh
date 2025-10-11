@@ -13,6 +13,9 @@ OUTPREFIX="${ARGS[-2]}"
 THREADS="${ARGS[-1]}"
 BED_FILES=("${ARGS[@]:0:${#ARGS[@]}-2}")
 
+source $(conda info --base)/etc/profile.d/conda.sh
+conda activate varcall
+
 # sort all input BED files
 printf "%s\n" "${BED_FILES[@]}" | parallel -j "$THREADS" '
     echo "Sorting {}"
