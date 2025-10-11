@@ -50,7 +50,7 @@ add_group "$HYBRID" "hybrid"
 add_group "$OUTGROUP" "outgroup"
 
 # --- Генерация poplist.txt ---
-echo "mzib   mmar   hybrid   outgroup" > "$POPFILE"
+echo -e "mzib\tmmar\thybrid\toutgroup" > "$POPFILE"
 
 # --- Конфигурация qpDstat ---
 PARFILE="${TMPDIR}/qpDstat.par"
