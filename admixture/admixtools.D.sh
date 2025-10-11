@@ -26,9 +26,9 @@ SNP_FILE="${PREFIX}.snp"
 IND_FILE="${PREFIX}.ind"
 
 # --- Создаём временную директорию ---
-TMPDIR=$(mktemp -d)
-IND_TEMP="${TMPDIR}/dataset.ind"
-POPFILE="${TMPDIR}/poplist.txt"
+# TMPDIR=$(mktemp -d)
+IND_TEMP="dataset.ind"
+POPFILE="poplist.txt"
 
 # --- Генерация .ind файла ---
 echo "=== Генерация .ind файла ==="
