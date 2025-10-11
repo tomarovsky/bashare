@@ -25,3 +25,16 @@ EOF
 # Run conversion
 echo "[INFO] PLINK → EIGENSTRAT..."
 convertf -p "$PARFILE" > "${PLINK_PREFIX}.convertf.log"
+
+# Fix .ind
+IND_FILE="${PLINK_PREFIX}.ind"
+cp "$IND_FILE" "${IND_FILE}.bak"
+
+# "10xmzib:10xmzib U ???" → "10xmzib U 10xmzib"
+awk '{
+    # remove possible colons
+    gsub(/:.*/, "", $1);
+    sample=$1;
+    sex=($2=="") ? "U" : $2;
+    printf "%s\t%s\t%s\n", sample, sex, sample;
+}' "${IND_FILE}.bak" > "$IND_FILE"
