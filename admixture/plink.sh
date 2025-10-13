@@ -42,4 +42,3 @@ plink --bfile ${OUTPREFIX}.prefiltered --out ${OUTPREFIX} \
     --pca \
     --make-bed \
     --threads $THREADS |& tee -a ${OUTPREFIX}.3.log
-
