@@ -32,7 +32,7 @@ IND_FILE="${PREFIX}.ind"
 # --- Temporary directory ---
 TMPDIR="${TMPDIR:-/tmp}/admixtools_run_$(date +%s)_$$"
 mkdir -p "$TMPDIR"
-trap "rm -rf ${TMPDIR}" EXIT
+# trap "rm -rf ${TMPDIR}" EXIT
 
 # --- Parse input groups ---
 parse_group() {
