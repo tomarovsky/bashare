@@ -1,9 +1,9 @@
 #!/bin/bash
 # Usage:
-# $TOOLS/bashare/draw_bed_counts.sh VCF ASSEMBLY_PATH [DENSITY_THRESHOLDS \"LABEL\"]
+# $TOOLS/bashare/draw_snp_densities.sh VCF ASSEMBLY_PATH [DENSITY_THRESHOLDS \"LABEL\"]
 
 if [[ $# -ne 2 && $# -ne 4 ]]; then
-    echo "Usage: $0 COUNTS_BED ASSEMBLY_PATH [DENSITY_THRESHOLDS DENSITY_MULTIPLIER]"
+    echo "Usage: $0 VCF ASSEMBLY_PATH [DENSITY_THRESHOLDS DENSITY_MULTIPLIER]"
     exit 1
 fi
 
@@ -29,4 +29,3 @@ $TOOLS/MACE/scripts/draw_variant_window_densities.py \
     --centromere_bed $ASSEMBLY/*.centromere.bed \
     --hide_track_label \
     --rounded
-

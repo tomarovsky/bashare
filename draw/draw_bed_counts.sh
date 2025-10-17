@@ -2,9 +2,9 @@
 # Usage:
 # $TOOLS/bashare/draw_bed_counts.sh COUNTS_BED ASSEMBLY_PATH [DENSITY_THRESHOLDS DENSITY_MULTIPLIER]
 # COUNTS_BED: *.w1mb.s100kb.counts.bed
-# HiC_scaffold_1    0	1000000	213412
-# HiC_scaffold_1	100000	1100000	210689
-# HiC_scaffold_1	200000	1200000	204796
+# HiC_scaffold_1    0       1000000 213412
+# HiC_scaffold_1    100000  1100000 210689
+# HiC_scaffold_1    200000  1200000 204796
 
 if [[ $# -ne 2 && $# -ne 4 ]]; then
     echo "Usage: $0 COUNTS_BED ASSEMBLY_PATH [DENSITY_THRESHOLDS DENSITY_MULTIPLIER]"
@@ -34,4 +34,3 @@ $TOOLS/MACE/scripts/draw_variant_window_densities.py \
     --density_multiplier ${DENSITY_MULTIPLIER} \
     --window_size 1000000 \
     --window_step 100000
-
