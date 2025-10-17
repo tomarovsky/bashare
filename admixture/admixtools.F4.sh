@@ -9,7 +9,7 @@ if [[ $# -ne 6 ]]; then
     echo "     mmar:10xmmar,S44,S46,S49,T149,T24,T76,T77,T82 \\"
     echo "     hybrid:T84,T87 \\"
     echo "     outgroup:10xmfoi \\"
-    echo "     Dstat_hybrids_vs_mzib_mmar.txt"
+    echo "     F4stat_hybrids_vs_mzib_mmar.txt"
     exit 1
 fi
 
@@ -28,7 +28,7 @@ SNP_FILE="${PREFIX}.snp"
 IND_FILE="${PREFIX}.ind"
 
 # --- Temporary directory ---
-TMPDIR="${TMPDIR:-/tmp}/admixtools_D_$(date +%s)_$$"
+TMPDIR="${TMPDIR:-/tmp}/admixtools_F4_$(date +%s)_$$"
 mkdir -p "$TMPDIR"
 trap "rm -rf ${TMPDIR}" EXIT
 
@@ -81,17 +81,17 @@ done
 # --- Create poplist.txt ---
 echo -e "${GROUP1_NAME}\t${GROUP2_NAME}\t${HYBRID_NAME}\t${OUTGROUP_NAME}\n" > "$POPFILE"
 
-# --- Run D-statistic ---
+# --- Run F4-statistic ---
 cat > "$PARFILE" <<EOF
 genotypename: $GENO_FILE
 snpname:      $SNP_FILE
 indivname:    $IND_TEMP
 popfilename:  $POPFILE
-f4mode:       NO
+f4mode:       YES
 inbreed:      NO
 EOF
 
-echo "=== [INFO] qpDstat -> D-statistic ==="
+echo "=== [INFO] qpDstat -> F4-statistic ==="
 qpDstat -p "$PARFILE" > "$OUTFILE"
 
 echo "[INFO] Output file: $OUTFILE"
