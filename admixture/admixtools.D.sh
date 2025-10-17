@@ -52,7 +52,7 @@ add_group "$OUTGROUP" "outgroup"
 echo -e "mzib\tmmar\thybrid\toutgroup\n" > "$POPFILE"
 
 # --- Конфигурация qpDstat ---
-PARFILE="${TMPDIR}/qpDstat.par"
+PARFILE="qpDstat.par"
 cat > "$PARFILE" <<EOF
 genotypename: $GENO_FILE
 snpname:      $SNP_FILE
