@@ -1,14 +1,15 @@
 #!/bin/bash
 set -euo pipefail
 
-if [[ $# -ne 5 ]]; then
-    echo "Usage: $0 <prefix> <group1_samples> <group2_samples> <hybrid_sample> <outgroup_sample>"
+if [[ $# -ne 6 ]]; then
+    echo "Usage: $0 <prefix> <group1:samples> <group2:samples> <hybrid:samples> <outgroup:samples> <outfile>"
     echo "Example:"
     echo "  $0 mzib.mfoi.allsamples.filt.mask.auto.snp.plink \\"
-    echo "     10xmzib,S26,T8,T26,T50,T72,T90,T104,T118,T148,T150,T194,china \\"
-    echo "     10xmmar,S44,S46,S49,T149,T24,T76,T77,T82 \\"
-    echo "     T87 \\"
-    echo "     10xmfoi"
+    echo "     mzib:10xmzib,S26,T8,T26,T50,T72,T90,T104,T118,T148,T150,T194,china \\"
+    echo "     mmar:10xmmar,S44,S46,S49,T149,T24,T76,T77,T82 \\"
+    echo "     hybrid:T84,T87 \\"
+    echo "     outgroup:10xmfoi \\"
+    echo "     Dstat_hybrids_vs_mzib_mmar.txt"
     exit 1
 fi
 
@@ -16,64 +17,82 @@ source $(conda info --base)/etc/profile.d/conda.sh
 conda activate admixtools
 
 PREFIX=$1
-GROUP1_SAMPLES=$2
-GROUP2_SAMPLES=$3
+GROUP1=$2
+GROUP2=$3
 HYBRID=$4
 OUTGROUP=$5
+OUTFILE=$6
 
 GENO_FILE="${PREFIX}.geno"
 SNP_FILE="${PREFIX}.snp"
 IND_FILE="${PREFIX}.ind"
 
-IND_TEMP="dataset.ind"
-POPFILE="poplist.txt"
-PARFILE="qpDstat.par"
+# --- Temporary directory ---
+TMPDIR="${TMPDIR:-/tmp}/qpDstat_run_$(date +%s)_$$"
+mkdir -p "$TMPDIR"
+trap "rm -rf ${TMPDIR}" EXIT
 
-# --- Преобразуем строки с запятыми в массивы ---
+# --- Parse input groups ---
+parse_group() {
+    local arg="$1"
+    local group_name=$(echo "$arg" | cut -d':' -f1)
+    local group_samples=$(echo "$arg" | cut -d':' -f2)
+    echo "$group_name" "$group_samples"
+}
+
+read GROUP1_NAME GROUP1_SAMPLES <<< "$(parse_group "$GROUP1")"
+read GROUP2_NAME GROUP2_SAMPLES <<< "$(parse_group "$GROUP2")"
+read HYBRID_NAME HYBRID_SAMPLES <<< "$(parse_group "$HYBRID")"
+read OUTGROUP_NAME OUTGROUP_SAMPLES <<< "$(parse_group "$OUTGROUP")"
+
 IFS=',' read -ra GROUP1_ARR <<< "$GROUP1_SAMPLES"
 IFS=',' read -ra GROUP2_ARR <<< "$GROUP2_SAMPLES"
-IFS=',' read -ra HYBRID_ARR <<< "$HYBRID"
-OUTGROUP_ARR=("$OUTGROUP")
+IFS=',' read -ra HYBRID_ARR <<< "$HYBRID_SAMPLES"
+IFS=',' read -ra OUTGROUP_ARR <<< "$OUTGROUP_SAMPLES"
 
-# --- Считываем все образцы из оригинального .ind ---
+# --- Read .ind ---
 ORIG_IND=()
 while read -r line; do
     sample=$(echo "$line" | awk '{print $1}')
     ORIG_IND+=("$sample")
 done < "$IND_FILE"
 
-# --- Создаём новый .ind ---
-> "$IND_TEMP"
+IND_TEMP="${TMPDIR}/dataset.ind"
+POPFILE="${TMPDIR}/poplist.txt"
+PARFILE="${TMPDIR}/qpDstat.par"
 
+# --- Create .ind ---
+> "$IND_TEMP"
 for sample in "${ORIG_IND[@]}"; do
     if [[ " ${GROUP1_ARR[*]} " =~ " $sample " ]]; then
-        pop="mzib"
+        pop="$GROUP1_NAME"
     elif [[ " ${GROUP2_ARR[*]} " =~ " $sample " ]]; then
-        pop="mmar"
-    elif [[ " ${HYBRID_ARR[*]} " =~ " $sample " ]]; then
-        pop="hybrid"
+        pop="$GROUP2_NAME"
     elif [[ " ${OUTGROUP_ARR[*]} " =~ " $sample " ]]; then
-        pop="outgroup"
+        pop="$OUTGROUP_NAME"
+    elif [[ " ${HYBRID_ARR[*]} " =~ " $sample " ]]; then
+        pop="$HYBRID_NAME"
     else
         pop="ignore"
     fi
     echo -e "${sample}\tU\t${pop}" >> "$IND_TEMP"
 done
 
-# --- Создаём poplist.txt ---
-echo -e "mzib\tmmar\thybrid\toutgroup\n" > "$POPFILE"
+# --- Create poplist.txt ---
+echo -e "${GROUP1_NAME}\t${GROUP2_NAME}\t${HYBRID_NAME}\t${OUTGROUP_NAME}\n" > "$POPFILE"
 
-# --- Создаём парфайл для qpDstat ---
+# --- Create par-файл ---
 cat > "$PARFILE" <<EOF
 genotypename: $GENO_FILE
 snpname:      $SNP_FILE
 indivname:    $IND_TEMP
 popfilename:  $POPFILE
-f4mode:       NO
+f4mode:       YES
+inbreed:      NO
 EOF
 
-# --- Запуск qpDstat ---
-OUTFILE="Dstat_${HYBRID}_vs_mzib_mmar.txt"
-echo "=== Расчёт D-статистики для гибрида $HYBRID ==="
+# --- Run qpDstat ---
+echo "=== Запуск qpDstat ==="
 qpDstat -p "$PARFILE" > "$OUTFILE"
+
 echo "Результаты сохранены: $OUTFILE"
