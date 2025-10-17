@@ -14,10 +14,10 @@ unset 'files[-1]'
 unset 'files[-1]'
 
 # Input files
-len_file="${config_dir}/*.len"
-syn_file="${config_dir}/*.syn"
-ord_file="${config_dir}/*.orderedlist"
-white_file="${config_dir}/*.whitelist"
+len_file="${config_dir}/mzib.min_150.pseudohap2.1_HiC.purged.len"
+syn_file="${config_dir}/mzib.min_150.pseudohap2.1_HiC.purged.syn"
+ord_file="${config_dir}/mzib.min_150.pseudohap2.1_HiC.purged.orderedlist"
+white_file="${config_dir}/mzib.min_150.pseudohap2.1_HiC.purged.whitelist"
 
 # Check files
 for f in "$len_file" "$syn_file" "$ord_file" "$white_file"; do
