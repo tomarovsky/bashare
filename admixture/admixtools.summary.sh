@@ -3,6 +3,7 @@ set -euo pipefail
 
 if [[ $# -lt 1 ]]; then
     echo "Usage: $0 <stat.file1> [<stat.file2> ...]"
+    echo "Example: $0 $(ls admixtools/F3stat.*.txt | tr '\n' ' ')"
     exit 1
 fi
 
