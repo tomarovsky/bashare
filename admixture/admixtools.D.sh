@@ -26,7 +26,6 @@ SNP_FILE="${PREFIX}.snp"
 IND_FILE="${PREFIX}.ind"
 
 # --- Создаём временную директорию ---
-# TMPDIR=$(mktemp -d)
 IND_TEMP="dataset.ind"
 POPFILE="poplist.txt"
 
@@ -50,7 +49,7 @@ add_group "$HYBRID" "hybrid"
 add_group "$OUTGROUP" "outgroup"
 
 # --- Генерация poplist.txt ---
-echo -e "mzib\tmmar\t${HYBRID}\toutgroup\n" > "$POPFILE"
+echo -e "mzib\tmmar\thybrid\toutgroup\n" > "$POPFILE"
 
 # --- Конфигурация qpDstat ---
 PARFILE="${TMPDIR}/qpDstat.par"
@@ -59,7 +58,7 @@ genotypename: $GENO_FILE
 snpname:      $SNP_FILE
 indivname:    $IND_TEMP
 popfilename:  $POPFILE
-f4mode:       YES
+f4mode:       NO
 EOF
 
 # --- Запуск qpDstat ---
@@ -67,8 +66,6 @@ echo "=== Расчёт D-статистики для гибрида $HYBRID ==="
 OUTFILE="Dstat_${HYBRID}_vs_mzib_mmar.txt"
 
 # временно заменяем "hybrid" на имя гибрида в poplist
-# sed "s/hybrid/$HYBRID/" "$POPFILE" > "${TMPDIR}/popfile_temp.txt"
-# qpDstat -p <(sed "s/popfilename:.*/popfilename: ${TMPDIR}\/popfile_temp.txt/" "$PARFILE") > "$OUTFILE"
 qpDstat -p "$PARFILE" > "$OUTFILE"
 
 echo "Результаты сохранены: $OUTFILE"
