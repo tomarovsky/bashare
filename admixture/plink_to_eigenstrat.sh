@@ -3,6 +3,7 @@ set -euo pipefail
 
 if [[ $# -ne 1 ]]; then
     echo "Usage: $0 PLINK_PREFIX"
+    echo "Converts a PLINK dataset to an Eigenstrat dataset: .geno, .snp, .ind"
     exit 1
 fi
 
