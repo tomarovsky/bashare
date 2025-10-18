@@ -57,12 +57,12 @@ for file in "${BED_FILES[@]}"; do
     filename=$(basename "$file")
     sample="${filename%%.*}"
 
-    awk -v s="$SCAFFOLD" -v id="$sample" '$1==s {print id"_"$0}' "$file" >> "$OUT_BED"
+    awk -v s="$SCAFFOLD" -v id="$sample" '$1==s {print id"."$0}' "$file" >> "$OUT_BED"
 
-    echo -e "${sample}_${SCAFFOLD}\t${SCAFFOLD_LEN}" >> "$OUT_LEN"
-    echo "${sample}_${SCAFFOLD}" >> "$OUT_WHITELIST"
-    echo "${sample}_${CHR_NAME}" >> "$OUT_ORDERED"
-    echo -e "${sample}_${SCAFFOLD}\t${sample}_${CHR_NAME}" >> "$OUT_SYN"
+    echo -e "${sample}.${SCAFFOLD}\t${SCAFFOLD_LEN}" >> "$OUT_LEN"
+    echo "${sample}.${SCAFFOLD}" >> "$OUT_WHITELIST"
+    echo "${sample}.${CHR_NAME}" >> "$OUT_ORDERED"
+    echo -e "${sample}.${SCAFFOLD}\t${sample}.${CHR_NAME}" >> "$OUT_SYN"
 done
 
 echo "[INFO] Done!"
