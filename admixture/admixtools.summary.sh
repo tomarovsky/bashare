@@ -8,12 +8,12 @@ if [[ $# -lt 1 ]]; then
 fi
 
 # Header
-echo -e "F3:Source_1\tSource_2\tTarget\tF3\tstderr\tZ-score\tSNPs"
-echo -e "D/F4:Target\tSource_1\tSource_2\tOutgroup\tD/F4\tZ-score\tABBA\tBABA\tSNPs"
+echo -e "F3:Source_1,Source_2,Target,F3,stderr,Z-score,SNPs"
+echo -e "D/F4:Target,Source_1,Source_2,Outgroup,D/F4,Z-score,ABBA,BABA,SNPs"
 
 for file in "$@"; do
     grep "result:" "$file" | while read -r line; do
         line_clean=$(echo "$line" | sed 's/result:[[:space:]]*//')
-        echo -e "$(echo "$line_clean" | awk '{$1=$1; print}' | tr -s ' ' '\t')"
+        echo -e "$(echo "$line_clean" | awk '{$1=$1; print}' | tr -s ' ' ',')"
     done
 done
