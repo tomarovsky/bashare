@@ -85,7 +85,7 @@ popfilename:  $POPFILE
 inbreed:      NO
 EOF
 
-echo "=== [INFO] qp3Pop -> F3-statistic ==="
+echo "[INFO] qp3Pop -> F3-statistic"
 qp3Pop -p "$PARFILE" > "$OUTFILE"
 
 echo "[INFO] Output file: $OUTFILE"

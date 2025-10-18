@@ -91,7 +91,7 @@ f4mode:       NO
 inbreed:      NO
 EOF
 
-echo "=== [INFO] qpDstat -> D-statistic ==="
+echo "[INFO] qpDstat -> D-statistic"
 qpDstat -p "$PARFILE" > "$OUTFILE"
 
 echo "[INFO] Output file: $OUTFILE"
