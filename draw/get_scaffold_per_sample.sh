@@ -2,69 +2,81 @@
 set -euo pipefail
 
 if [[ $# -lt 3 ]]; then
-    echo "Usage: $0 <*.local_admixture.features.bed ...> <config_dir> <scaffold>"
-    echo "Example: $0 *.local_admixture.features.bed /path/to/dir/ HiC_scaffold_1"
+    echo "Usage: $0 <FEATURES_BED_FILES> GENOME_BASE SCAFFOLD"
+    echo "Example: $0 *.features.bed /path/to/assembly/mzib HiC_scaffold_19"
     exit 1
 fi
 
-files=("$@")
-config_dir="${files[-2]}"
-scaffold="${files[-1]}"
-unset 'files[-1]'
-unset 'files[-1]'
+# Arguments
+BED_FILES=("$@")
+GENOME_BASE="${BED_FILES[-2]}"
+SCAFFOLD="${BED_FILES[-1]}"
+unset 'BED_FILES[-1]'
+unset 'BED_FILES[-1]'
+
+# Check
+if [[ ! -d "$GENOME_BASE" ]]; then
+    echo "Error: genome base directory '$GENOME_BASE' not found"
+    exit 1
+fi
 
 # Input files
-len_file="${config_dir}/mzib.min_150.pseudohap2.1_HiC.purged.len"
-syn_file="${config_dir}/mzib.min_150.pseudohap2.1_HiC.purged.syn"
-ord_file="${config_dir}/mzib.min_150.pseudohap2.1_HiC.purged.orderedlist"
-white_file="${config_dir}/mzib.min_150.pseudohap2.1_HiC.purged.whitelist"
+GENOME_PREFIX=$(basename "$GENOME_BASE")
+LEN_FILE="$GENOME_BASE/${GENOME_PREFIX}.len"
+SYN_FILE="$GENOME_BASE/${GENOME_PREFIX}.syn"
+ORDEREDLIST_FILE="$GENOME_BASE/${GENOME_PREFIX}.orderedlist"
 
-# Check files
-for f in "$len_file" "$syn_file" "$ord_file" "$white_file"; do
-    [[ -f "$f" ]] || { echo "Error: config file not found: $f"; exit 1; }
+# Check existence
+for f in "$LEN_FILE" "$SYN_FILE" "$ORDEREDLIST_FILE"; do
+    [[ -f "$f" ]] || { echo "Error: $f not found"; exit 1; }
 done
 
-# Temporary and output files
-out_prefix="all_samples"
-out_features="${out_prefix}.local_admixture.features.bed"
-out_len="${config_dir}/${scaffold}.len"
-out_syn="${config_dir}/${scaffold}.syn"
-out_ord="${config_dir}/${scaffold}.orderedlist"
-out_white="${config_dir}/${scaffold}.whitelist"
+# Outfiles
+OUT_PREFIX="all_samples"
+OUT_BED="${OUT_PREFIX}.local_admixture.features.bed"
+OUT_LEN="${GENOME_PREFIX}.len"
+OUT_WHITELIST="${GENOME_PREFIX}.whitelist"
+OUT_ORDERED="${GENOME_PREFIX}.orderedlist"
+OUT_SYN="${GENOME_PREFIX}.syn"
 
-> "$out_features"
-> "$out_len"
-> "$out_syn"
-> "$out_ord"
-> "$out_white"
+# Clear previous files if exist
+> "$OUT_BED"
+> "$OUT_LEN"
+> "$OUT_WHITELIST"
+> "$OUT_ORDERED"
+> "$OUT_SYN"
 
-# Find the name for scaffold in syntax (for MZIB.chrX)
-target_chr=$(awk -v scaf="$scaffold" '$1==scaf {print $2}' "$syn_file")
-if [[ -z "$target_chr" ]]; then
-    echo "Error: scaffold $scaffold not found in genome.syn"
+# Get chromosome name from genome.syn
+CHR_NAME=$(awk -v s="$SCAFFOLD" '$1==s {print $2}' "$SYN_FILE" | head -n1)
+if [[ -z "$CHR_NAME" ]]; then
+    echo "Error: scaffold $SCAFFOLD not found in $SYN_FILE"
     exit 1
 fi
 
-# Process each file
-for file in "${files[@]}"; do
-    [[ -f "$file" ]] || continue
-    sample=$(basename "$file" .local_admixture.features.bed)
+# Get length of scaffold from genome.len
+SCAFFOLD_LEN=$(awk -v s="$SCAFFOLD" '$1==s {print $2}' "$LEN_FILE" | head -n1)
+if [[ -z "$SCAFFOLD_LEN" ]]; then
+    echo "Error: scaffold $SCAFFOLD not found in $LEN_FILE"
+    exit 1
+fi
 
-    echo "Processing $sample ..."
+# Prepare scaffold-specific files
+for file in "${BED_FILES[@]}"; do
+    filename=$(basename "$file")
+    sample="${filename%%.*}"
 
-    # get only one scaffold and add it to the beginning
-    awk -v scaf="$scaffold" -v id="$sample" '$1==scaf {print id"_"$0}' "$file" >> "$out_features"
+    awk -v s="$SCAFFOLD" -v id="$sample" '$1==s {print id"_"$0}' "$file" >> "$OUT_BED"
 
-    # genome.len
-    len_value=$(awk -v scaf="$scaffold" '$1==scaf {print $2}' "$len_file")
-    echo -e "${sample}_${scaffold}\t${len_value}" >> "$out_len"
-
-    # genome.whitelist
-    echo "${sample}_${scaffold}" >> "$out_white"
-
-    # genome.orderedlist
-    echo "${sample}_${target_chr}" >> "$out_ord"
-
-    # genome.syn
-    echo -e "${sample}_${scaffold}\t${sample}_${target_chr}" >> "$out_syn"
+    echo "${sample}_${SCAFFOLD}  $SCAFFOLD_LEN" >> "$OUT_LEN"
+    echo "${sample}_${SCAFFOLD}" >> "$OUT_WHITELIST"
+    echo "${sample}_${CHR_NAME}" >> "$OUT_ORDERED"
+    echo "${sample}_${SCAFFOLD}  ${sample}_${CHR_NAME}" >> "$OUT_SYN"
 done
+
+echo "[INFO] Done!"
+echo "Created files:"
+echo "  $OUT_BED"
+echo "  $OUT_LEN"
+echo "  $OUT_WHITELIST"
+echo "  $OUT_ORDERED"
+echo "  $OUT_SYN"
