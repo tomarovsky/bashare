@@ -7,24 +7,16 @@ if [[ $# -lt 3 ]]; then
     exit 1
 fi
 
-# Arguments
-BED_FILES=("$@")
-GENOME_BASE="${BED_FILES[-2]}"
-SCAFFOLD="${BED_FILES[-1]}"
-unset 'BED_FILES[-1]'
-unset 'BED_FILES[-1]'
-
-# Check
-if [[ ! -d "$GENOME_BASE" ]]; then
-    echo "Error: genome base directory '$GENOME_BASE' not found"
-    exit 1
-fi
+# Parse arguments safely
+BED_FILES=("${@:1:$#-2}")     # all except last two
+GENOME_BASE="${@: -2:1}"      # argument before last
+SCAFFOLD="${@: -1}"           # last argument
 
 # Input files
 GENOME_PREFIX=$(basename "$GENOME_BASE")
-LEN_FILE="$GENOME_BASE/${GENOME_PREFIX}.len"
-SYN_FILE="$GENOME_BASE/${GENOME_PREFIX}.syn"
-ORDEREDLIST_FILE="$GENOME_BASE/${GENOME_PREFIX}.orderedlist"
+LEN_FILE="${GENOME_BASE}.len"
+SYN_FILE="${GENOME_BASE}.syn"
+ORDEREDLIST_FILE="${GENOME_BASE}.orderedlist"
 
 # Check existence
 for f in "$LEN_FILE" "$SYN_FILE" "$ORDEREDLIST_FILE"; do
@@ -32,12 +24,12 @@ for f in "$LEN_FILE" "$SYN_FILE" "$ORDEREDLIST_FILE"; do
 done
 
 # Outfiles
-OUT_PREFIX="all_samples"
-OUT_BED="${OUT_PREFIX}.local_admixture.features.bed"
-OUT_LEN="${GENOME_PREFIX}.len"
-OUT_WHITELIST="${GENOME_PREFIX}.whitelist"
-OUT_ORDERED="${GENOME_PREFIX}.orderedlist"
-OUT_SYN="${GENOME_PREFIX}.syn"
+OUT_PREFIX="all_samples.${SCAFFOLD}"
+OUT_BED="${OUT_PREFIX}.features.bed"
+OUT_LEN="${GENOME_PREFIX}.${SCAFFOLD}.len"
+OUT_WHITELIST="${GENOME_PREFIX}.${SCAFFOLD}.whitelist"
+OUT_ORDERED="${GENOME_PREFIX}.${SCAFFOLD}.orderedlist"
+OUT_SYN="${GENOME_PREFIX}.${SCAFFOLD}.syn"
 
 # Clear previous files if exist
 > "$OUT_BED"
