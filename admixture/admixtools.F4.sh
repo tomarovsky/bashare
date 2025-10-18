@@ -89,6 +89,7 @@ indivname:    $IND_TEMP
 popfilename:  $POPFILE
 f4mode:       YES
 inbreed:      NO
+printsd:      YES
 EOF
 
 echo "[INFO] qpDstat -> F4-statistic"
