@@ -59,10 +59,10 @@ for file in "${BED_FILES[@]}"; do
 
     awk -v s="$SCAFFOLD" -v id="$sample" '$1==s {print id"_"$0}' "$file" >> "$OUT_BED"
 
-    echo "${sample}_${SCAFFOLD}  $SCAFFOLD_LEN" >> "$OUT_LEN"
+    echo -e "${sample}_${SCAFFOLD}\t${SCAFFOLD_LEN}" >> "$OUT_LEN"
     echo "${sample}_${SCAFFOLD}" >> "$OUT_WHITELIST"
     echo "${sample}_${CHR_NAME}" >> "$OUT_ORDERED"
-    echo "${sample}_${SCAFFOLD}  ${sample}_${CHR_NAME}" >> "$OUT_SYN"
+    echo -e "${sample}_${SCAFFOLD}\t${sample}_${CHR_NAME}" >> "$OUT_SYN"
 done
 
 echo "[INFO] Done!"
