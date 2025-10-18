@@ -80,7 +80,6 @@ done
 
 # --- Create poplist.txt ---
 echo -e "${GROUP1_NAME}\t${GROUP2_NAME}\t${HYBRID_NAME}\t${OUTGROUP_NAME}\n" > "$POPFILE"
-echo -e "${HYBRID_NAME}\t${GROUP1_NAME}\t${GROUP2_NAME}\t${OUTGROUP_NAME}\n" > "$POPFILE"
 
 # --- Run D-statistic ---
 cat > "$PARFILE" <<EOF
