@@ -13,7 +13,7 @@ if [[ $# -ne 6 ]]; then
     exit 1
 fi
 
-script_path="$TOOLS/bashare/admixture/admixtools.D.F4.sh"
+SCRIPT_PATH="$TOOLS/bashare/admixture/admixtools.D.F4.sh"
 
 STAT_TYPE=$1
 PREFIX=$2
@@ -53,14 +53,14 @@ for sample in "${GROUP1_ARR[@]}"; do
     group1_str="${GROUP1_NAME}:$(IFS=,; echo "${reduced_group1[*]}")"
     group2_str="${GROUP2_NAME}:$(IFS=,; echo "${GROUP2_ARR[*]}")"
 
-    "$script_path" \
+    "$SCRIPT_PATH" \
         "$STAT_TYPE" \
         "$PREFIX" \
         "${sample}:${sample}" \
         "$group1_str" \
         "$group2_str" \
         "${OUTGROUP_NAME}:${OUTGROUP_SAMPLES}" \
-        "${outdir}/${STAT_TYPE}stat.${sample}_${GROUP1_NAME}_${GROUP2_NAME}.txt"
+        "${OUTPUT_DIR}/${STAT_TYPE}stat.${sample}_${GROUP1_NAME}_${GROUP2_NAME}.txt"
 done
 
 # per sample in group 2
@@ -73,12 +73,12 @@ for sample in "${GROUP2_ARR[@]}"; do
     group1_str="${GROUP1_NAME}:$(IFS=,; echo "${GROUP1_ARR[*]}")"
     group2_str="${GROUP2_NAME}:$(IFS=,; echo "${reduced_group2[*]}")"
 
-    "$script_path" \
+    "$SCRIPT_PATH" \
         "$STAT_TYPE" \
         "$PREFIX" \
         "${sample}:${sample}" \
         "$group1_str" \
         "$group2_str" \
         "${OUTGROUP_NAME}:${OUTGROUP_SAMPLES}" \
-        "${outdir}/${STAT_TYPE}stat.${sample}_${GROUP1_NAME}_${GROUP2_NAME}.txt"
+        "${OUTPUT_DIR}/${STAT_TYPE}stat.${sample}_${GROUP1_NAME}_${GROUP2_NAME}.txt"
 done
