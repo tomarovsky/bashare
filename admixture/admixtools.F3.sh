@@ -85,7 +85,9 @@ popfilename:  $POPFILE
 inbreed:      NO
 EOF
 
-echo "[INFO] qp3Pop -> F3-statistic"
 qp3Pop -p "$PARFILE" > "$OUTFILE"
 
-echo "[INFO] Output file: $OUTFILE"
+grep "result:" "$OUTFILE" | while read -r line; do
+    line_clean=$(echo "$line" | sed 's/result:[[:space:]]*//')
+    echo -e "$(echo "$line_clean" | awk '{$1=$1; print}' | tr -s ' ' ',')"
+done
