@@ -29,6 +29,9 @@ names(pops) <- c("id", "pop")
 data.diff <- alleleFreqDiff(vcfR = data, pm = pops,
                             p1 = "M.martes", p2 = "M.zibellina",
                             difference = $DIFF)
+# Save filtered VCF
+# write.vcf(data.diff, file = "${VCF_FILE%.*}.diff_filt.vcf.gz")
+
 hi.het <- hybridIndex(vcfR = data.diff, pm = pops,
                       p1 = "M.martes", p2 = "M.zibellina")
 
