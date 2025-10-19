@@ -94,13 +94,7 @@ EOF
 
 qpDstat -p "$PARFILE" > "$OUTFILE"
 
-echo "[INFO] Output file: $OUTFILE"
-
-echo -e "W,X,Y,Z(Outgroup),D/F4,stderr,Z-score,ABBA,BABA,SNPs"
-
-for file in "$OUTFILE"; do
-    grep "result:" "$file" | while read -r line; do
-        line_clean=$(echo "$line" | sed 's/result:[[:space:]]*//')
-        echo -e "$(echo "$line_clean" | awk '{$1=$1; print}' | tr -s ' ' ',')"
-    done
+grep "result:" "$OUTFILE" | while read -r line; do
+    line_clean=$(echo "$line" | sed 's/result:[[:space:]]*//')
+    echo -e "$(echo "$line_clean" | awk '{$1=$1; print}' | tr -s ' ' ',')"
 done
