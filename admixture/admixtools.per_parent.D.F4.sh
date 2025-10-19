@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 
-if [[ $# -ne 7 ]]; then
+if [[ $# -ne 6 ]]; then
     echo "Usage: $0 <stat:D|F4> <plink_prefix> <group1:name:samples> <group2:name:samples> <outgroup:name:samples> output_dir"
     echo
     echo "Example:"
