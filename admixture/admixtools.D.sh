@@ -2,12 +2,12 @@
 set -euo pipefail
 
 if [[ $# -ne 6 ]]; then
-    echo "Usage: $0 <prefix> <group1:samples> <group2:samples> <hybrid:samples> <outgroup:samples> <outfile>"
+    echo "Usage: $0 <prefix> <W:samples> <X:samples> <Y:samples> <Z:samples> <outfile>"
     echo "Example:"
     echo "  $0 mzib.mfoi.allsamples.filt.mask.auto.snp.plink \\"
+    echo "     hybrid:T84,T87 \\"
     echo "     mzib:10xmzib,S26,T8,T26,T50,T72,T90,T104,T118,T148,T150,T194,china \\"
     echo "     mmar:10xmmar,S44,S46,S49,T149,T24,T76,T77,T82 \\"
-    echo "     hybrid:T84,T87 \\"
     echo "     outgroup:10xmfoi \\"
     echo "     Dstat_hybrids_vs_mzib_mmar.txt"
     exit 1
@@ -17,10 +17,10 @@ source $(conda info --base)/etc/profile.d/conda.sh
 conda activate admixtools
 
 PREFIX=$1
-GROUP1=$2
-GROUP2=$3
-HYBRID=$4
-OUTGROUP=$5
+W=$2
+X=$3
+Y=$4
+Z=$5
 OUTFILE=$6
 
 GENO_FILE="${PREFIX}.geno"
@@ -40,15 +40,15 @@ parse_group() {
     echo "$group_name" "$group_samples"
 }
 
-read GROUP1_NAME GROUP1_SAMPLES <<< "$(parse_group "$GROUP1")"
-read GROUP2_NAME GROUP2_SAMPLES <<< "$(parse_group "$GROUP2")"
-read HYBRID_NAME HYBRID_SAMPLES <<< "$(parse_group "$HYBRID")"
-read OUTGROUP_NAME OUTGROUP_SAMPLES <<< "$(parse_group "$OUTGROUP")"
+read W_GROUP_NAME W_GROUP_SAMPLES <<< "$(parse_group "$W")"
+read X_GROUP_NAME X_GROUP_SAMPLES <<< "$(parse_group "$X")"
+read Y_GROUP_NAME Y_GROUP_SAMPLES <<< "$(parse_group "$Y")"
+read Z_OUTGROUP_NAME Z_OUTGROUP_SAMPLES <<< "$(parse_group "$Z")"
 
-IFS=',' read -ra GROUP1_ARR <<< "$GROUP1_SAMPLES"
-IFS=',' read -ra GROUP2_ARR <<< "$GROUP2_SAMPLES"
-IFS=',' read -ra HYBRID_ARR <<< "$HYBRID_SAMPLES"
-IFS=',' read -ra OUTGROUP_ARR <<< "$OUTGROUP_SAMPLES"
+IFS=',' read -ra W_GROUP_ARR <<< "$W_GROUP_SAMPLES"
+IFS=',' read -ra X_GROUP_ARR <<< "$X_GROUP_SAMPLES"
+IFS=',' read -ra Y_GROUP_ARR <<< "$Y_GROUP_SAMPLES"
+IFS=',' read -ra Z_OUTGROUP_ARR <<< "$Z_OUTGROUP_SAMPLES"
 
 # --- Read original .ind ---
 ORIG_IND=()
@@ -64,14 +64,14 @@ PARFILE="${TMPDIR}/parfile.par"
 # --- Create .ind ---
 > "$IND_TEMP"
 for sample in "${ORIG_IND[@]}"; do
-    if [[ " ${GROUP1_ARR[*]} " =~ " $sample " ]]; then
-        pop="$GROUP1_NAME"
-    elif [[ " ${GROUP2_ARR[*]} " =~ " $sample " ]]; then
-        pop="$GROUP2_NAME"
-    elif [[ " ${OUTGROUP_ARR[*]} " =~ " $sample " ]]; then
-        pop="$OUTGROUP_NAME"
-    elif [[ " ${HYBRID_ARR[*]} " =~ " $sample " ]]; then
-        pop="$HYBRID_NAME"
+    if [[ " ${W_GROUP_ARR[*]} " =~ " $sample " ]]; then
+        pop="$W_GROUP_NAME"
+    elif [[ " ${X_GROUP_ARR[*]} " =~ " $sample " ]]; then
+        pop="$X_GROUP_NAME"
+    elif [[ " ${Y_GROUP_ARR[*]} " =~ " $sample " ]]; then
+        pop="$Y_GROUP_NAME"
+    elif [[ " ${Z_OUTGROUP_ARR[*]} " =~ " $sample " ]]; then
+        pop="$Z_OUTGROUP_NAME"
     else
         pop="ignore"
     fi
@@ -79,7 +79,7 @@ for sample in "${ORIG_IND[@]}"; do
 done
 
 # --- Create poplist.txt ---
-echo -e "${GROUP1_NAME}\t${GROUP2_NAME}\t${HYBRID_NAME}\t${OUTGROUP_NAME}\n" > "$POPFILE"
+echo -e "${W_GROUP_NAME}\t${X_GROUP_NAME}\t${Y_GROUP_NAME}\t${Z_OUTGROUP_NAME}\n" > "$POPFILE"
 
 # --- Run D-statistic ---
 cat > "$PARFILE" <<EOF
@@ -92,7 +92,15 @@ inbreed:      NO
 printsd:      YES
 EOF
 
-echo "[INFO] qpDstat -> D-statistic"
 qpDstat -p "$PARFILE" > "$OUTFILE"
 
 echo "[INFO] Output file: $OUTFILE"
+
+echo -e "W,X,Y,Z(Outgroup),D/F4,stderr,Z-score,ABBA,BABA,SNPs"
+
+for file in "$OUTFILE"; do
+    grep "result:" "$file" | while read -r line; do
+        line_clean=$(echo "$line" | sed 's/result:[[:space:]]*//')
+        echo -e "$(echo "$line_clean" | awk '{$1=$1; print}' | tr -s ' ' ',')"
+    done
+done

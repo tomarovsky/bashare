@@ -9,7 +9,7 @@ fi
 
 # Header
 echo -e "Source_1,Source_2,Target,F3,stderr,Z-score,SNPs"
-echo -e "Target,Source_1,Source_2,Outgroup,D/F4,stderr,Z-score,ABBA,BABA,SNPs"
+echo -e "W,X,Y,Z(Outgroup),D/F4,stderr,Z-score,ABBA,BABA,SNPs"
 
 for file in "$@"; do
     grep "result:" "$file" | while read -r line; do
