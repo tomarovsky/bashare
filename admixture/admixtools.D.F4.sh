@@ -1,10 +1,10 @@
 #!/bin/bash
 set -euo pipefail
 
-if [[ $# -ne 6 ]]; then
-    echo "Usage: $0 <prefix> <W:samples> <X:samples> <Y:samples> <Z:samples> <outfile>"
+if [[ $# -ne 7 ]]; then
+    echo "Usage: $0 <stat:D|F4> <prefix> <W:samples> <X:samples> <Y:samples> <Z:samples> <outfile>"
     echo "Example:"
-    echo "  $0 mzib.mfoi.allsamples.filt.mask.auto.snp.plink \\"
+    echo "  $0 D mzib.mfoi.allsamples.filt.mask.auto.snp.plink \\"
     echo "     hybrid:T84,T87 \\"
     echo "     mzib:10xmzib,S26,T8,T26,T50,T72,T90,T104,T118,T148,T150,T194,china \\"
     echo "     mmar:10xmmar,S44,S46,S49,T149,T24,T76,T77,T82 \\"
@@ -16,19 +16,30 @@ fi
 source $(conda info --base)/etc/profile.d/conda.sh
 conda activate admixtools
 
-PREFIX=$1
-W=$2
-X=$3
-Y=$4
-Z=$5
-OUTFILE=$6
+STAT_TYPE=$1
+PREFIX=$2
+W=$3
+X=$4
+Y=$5
+Z=$6
+OUTFILE=$7
+
+# --- Determine f4mode value ---
+if [[ "$STAT_TYPE" == "D" ]]; then
+    F4MODE="NO"
+elif [[ "$STAT_TYPE" == "F4" ]]; then
+    F4MODE="YES"
+else
+    echo "Error: first argument must be either 'D' or 'F4'"
+    exit 1
+fi
 
 GENO_FILE="${PREFIX}.geno"
 SNP_FILE="${PREFIX}.snp"
 IND_FILE="${PREFIX}.ind"
 
 # --- Temporary directory ---
-TMPDIR="${TMPDIR:-/tmp}/admixtools_D_$(date +%s)_$$"
+TMPDIR="${TMPDIR:-/tmp}/admixtools_${STAT_TYPE}_$(date +%s)_$$"
 mkdir -p "$TMPDIR"
 trap "rm -rf ${TMPDIR}" EXIT
 
@@ -81,13 +92,13 @@ done
 # --- Create poplist.txt ---
 echo -e "${W_GROUP_NAME}\t${X_GROUP_NAME}\t${Y_GROUP_NAME}\t${Z_OUTGROUP_NAME}\n" > "$POPFILE"
 
-# --- Run D-statistic ---
+# --- Run qpDstat ---
 cat > "$PARFILE" <<EOF
 genotypename: $GENO_FILE
 snpname:      $SNP_FILE
 indivname:    $IND_TEMP
 popfilename:  $POPFILE
-f4mode:       YES
+f4mode:       $F4MODE
 inbreed:      NO
 printsd:      YES
 EOF
