@@ -19,7 +19,7 @@ plink --bfile $PLINK_PREFIX --recode vcf bgz --out $PLINK_PREFIX |& tee -a ${PLI
 conda deactivate && conda activate varcall
 
 mv $PLINK_PREFIX.vcf.gz $PLINK_PREFIX.vcf.gz.tmp
-zcat $PLINK_PREFIX.vcf.gz.tmp | awk 'BEGIN{OFS="\t"} /^#CHROM/ {for(i=1;i<=NF;i++){if(i>9){split($i,a,"_"); $i=a[1]}}}1' | bgzip > output.vcf.gz $PLINK_PREFIX.vcf.gz
+zcat $PLINK_PREFIX.vcf.gz.tmp | awk 'BEGIN{OFS="\t"} /^#CHROM/ {for(i=1;i<=NF;i++){if(i>9){split($i,a,"_"); $i=a[1]}}}1' | bgzip > $PLINK_PREFIX.vcf.gz
 rm $PLINK_PREFIX.vcf.gz.tmp
 
 # index
