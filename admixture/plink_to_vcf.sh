@@ -13,9 +13,8 @@ if [[ $# -ne 1 ]]; then
 fi
 
 # plink -> vcf.gz
-plink --bfile $PLINK_PREFIX --recode vcf bgz --out $PLINK_PREFIX
+plink --bfile $PLINK_PREFIX --recode vcf bgz --out $PLINK_PREFIX |& tee -a ${PLINK_PREFIX}.to_vcf.log
 
 # index
 conda activate varcall
 bcftools index $PLINK_PREFIX.vcf.gz
-
