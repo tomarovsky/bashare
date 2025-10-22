@@ -1,14 +1,17 @@
 #!/bin/bash
 set -euo pipefail
 
-if [[ $# -ne 6 ]]; then
-    echo "Usage: $0 <prefix> <source1:samples> <source2:samples> <hybrid:samples> <outgroups:samples> <outfile>"
+if [[ $# -ne 5 ]]; then
+    echo "Usage: $0 <prefix> <left_groups> <right_groups> <target_group> <outfile>"
+    echo ""
+    echo "  left_groups  : multiple groups separated by ';', each in format name:sample1,sample2,..."
+    echo "  right_groups : multiple groups separated by ';', each in format name:sample1,sample2,..."
+    echo "  target_group : single group in format name:sample1,sample2,..."
     echo "Example:"
     echo "  $0 mzib.mfoi.allsamples.filt.mask.auto.snp.plink \\"
-    echo "     mzib:10xmzib,S26,T8,T26,T50,T72,T90,T104,T118,T148,T150,T194,china \\"
-    echo "     mmar:10xmmar,S44,S46,S49,T149,T24,T76,T77,T82 \\"
-    echo "     hybrid:T84,T87 \\"
-    echo "     outgroups:Mfoina,Siberian_marten \\"
+    echo "     left:Martes_martes,S1,S2;Martes_zibellina,T1,T2 \\"
+    echo "     right:Martes_foina,R1,R2 \\"
+    echo "     hybrids:T84,T87 \\"
     echo "     qpAdm_results.txt"
     exit 1
 fi
@@ -17,11 +20,10 @@ source $(conda info --base)/etc/profile.d/conda.sh
 conda activate admixtools
 
 PREFIX=$1
-SOURCE1=$2
-SOURCE2=$3
-HYBRID=$4
-OUTGROUPS=$5
-OUTFILE=$6
+LEFT=$2
+RIGHT=$3
+TARGET=$4
+OUTFILE=$5
 
 GENO_FILE="${PREFIX}.geno"
 SNP_FILE="${PREFIX}.snp"
@@ -32,22 +34,36 @@ TMPDIR="${TMPDIR:-/tmp}/admixtools_qpAdm_$(date +%s)_$$"
 mkdir -p "$TMPDIR"
 trap "rm -rf ${TMPDIR}" EXIT
 
-# --- Parse input groups ---
+# --- Function to parse groups ---
+# input: "name:sample1,sample2,..."
+# returns: group_name samples_array
 parse_group() {
     local arg="$1"
-    local group_name=$(echo "$arg" | cut -d':' -f1)
-    local group_samples=$(echo "$arg" | cut -d':' -f2)
-    echo "$group_name" "$group_samples"
+    local name=$(echo "$arg" | cut -d':' -f1)
+    local samples=$(echo "$arg" | cut -d':' -f2)
+    IFS=',' read -ra arr <<< "$samples"
+    echo "$name" "${arr[*]}"
 }
 
-read SOURCE1_NAME SOURCE1_SAMPLES <<< "$(parse_group "$SOURCE1")"
-read SOURCE2_NAME SOURCE2_SAMPLES <<< "$(parse_group "$SOURCE2")"
-read HYBRID_NAME HYBRID_SAMPLES <<< "$(parse_group "$HYBRID")"
-read -a OUTGROUPS_ARR <<< $(echo "$OUTGROUPS" | tr ',' ' ')
+# --- Parse left groups ---
+declare -A LEFT_MAP
+IFS=';' read -ra LEFT_GROUPS <<< "$LEFT"
+for group in "${LEFT_GROUPS[@]}"; do
+    read name samples <<< "$(parse_group "$group")"
+    LEFT_MAP[$name]="$samples"
+done
 
-IFS=',' read -ra SOURCE1_ARR <<< "$SOURCE1_SAMPLES"
-IFS=',' read -ra SOURCE2_ARR <<< "$SOURCE2_SAMPLES"
-IFS=',' read -ra HYBRID_ARR <<< "$HYBRID_SAMPLES"
+# --- Parse right groups ---
+declare -A RIGHT_MAP
+IFS=';' read -ra RIGHT_GROUPS <<< "$RIGHT"
+for group in "${RIGHT_GROUPS[@]}"; do
+    read name samples <<< "$(parse_group "$group")"
+    RIGHT_MAP[$name]="$samples"
+done
+
+# --- Parse target group ---
+read TARGET_NAME TARGET_SAMPLES <<< "$(parse_group "$TARGET")"
+IFS=' ' read -ra TARGET_ARR <<< "$TARGET_SAMPLES"
 
 # --- Read original .ind ---
 ORIG_IND=()
@@ -63,27 +79,40 @@ PARFILE="${TMPDIR}/parfile.par"
 # --- Create .ind ---
 > "$IND_TEMP"
 for sample in "${ORIG_IND[@]}"; do
-    if [[ " ${SOURCE1_ARR[*]} " =~ " $sample " ]]; then
-        pop="$SOURCE1_NAME"
-    elif [[ " ${SOURCE2_ARR[*]} " =~ " $sample " ]]; then
-        pop="$SOURCE2_NAME"
-    elif [[ " ${HYBRID_ARR[*]} " =~ " $sample " ]]; then
-        pop="$HYBRID_NAME"
-    elif [[ " ${OUTGROUPS_ARR[*]} " =~ " $sample " ]]; then
-        pop="$sample"
-    else
-        pop="ignore"
+    assigned="ignore"
+    # Check left
+    for pop in "${!LEFT_MAP[@]}"; do
+        if [[ " ${LEFT_MAP[$pop]} " =~ " $sample " ]]; then
+            assigned="$pop"
+            break
+        fi
+    done
+    # Check right
+    if [[ "$assigned" == "ignore" ]]; then
+        for pop in "${!RIGHT_MAP[@]}"; do
+            if [[ " ${RIGHT_MAP[$pop]} " =~ " $sample " ]]; then
+                assigned="$pop"
+                break
+            fi
+        done
     fi
-    echo -e "${sample}\tU\t${pop}" >> "$IND_TEMP"
+    # Check target
+    if [[ "$assigned" == "ignore" ]]; then
+        if [[ " ${TARGET_ARR[*]} " =~ " $sample " ]]; then
+            assigned="$TARGET_NAME"
+        fi
+    fi
+    echo -e "${sample}\tU\t${assigned}" >> "$IND_TEMP"
 done
 
 # --- Create poplist.txt ---
 {
-    echo "$HYBRID_NAME"
-    echo "$SOURCE1_NAME"
-    echo "$SOURCE2_NAME"
-    for og in "${OUTGROUPS_ARR[@]}"; do
-        echo "$og"
+    echo "$TARGET_NAME"
+    for pop in "${!LEFT_MAP[@]}"; do
+        echo "$pop"
+    done
+    for pop in "${!RIGHT_MAP[@]}"; do
+        echo "$pop"
     done
 } > "$POPFILE"
 
@@ -100,3 +129,6 @@ EOF
 
 # --- Run qpAdm ---
 qpAdm -p "$PARFILE" > "$OUTFILE"
+
+# --- Optional: extract admixture proportions ---
+grep -E "left pop|right pop|admixture proportions|stderr" "$OUTFILE"
