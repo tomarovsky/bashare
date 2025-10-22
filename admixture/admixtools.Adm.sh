@@ -7,10 +7,11 @@ if [[ $# -ne 5 ]]; then
     echo "  left_groups  : multiple groups separated by ';', each in format name:sample1,sample2,..."
     echo "  right_groups : multiple groups separated by ';', each in format name:sample1,sample2,..."
     echo "  target_group : single group in format name:sample1,sample2,..."
+    echo ""
     echo "Example:"
     echo "  $0 mzib.mfoi.allsamples.filt.mask.auto.snp.plink \\"
-    echo "     left:Martes_martes,S1,S2;Martes_zibellina,T1,T2 \\"
-    echo "     right:Martes_foina,R1,R2 \\"
+    echo "     Martes_martes:S1,S2,S3;Martes_zibellina:T1,T2,T3 \\"
+    echo "     Martes_foina:R1,R2 \\"
     echo "     hybrids:T84,T87 \\"
     echo "     qpAdm_results.txt"
     exit 1
@@ -35,8 +36,6 @@ mkdir -p "$TMPDIR"
 trap "rm -rf ${TMPDIR}" EXIT
 
 # --- Function to parse groups ---
-# input: "name:sample1,sample2,..."
-# returns: group_name samples_array
 parse_group() {
     local arg="$1"
     local name=$(echo "$arg" | cut -d':' -f1)
@@ -131,4 +130,4 @@ EOF
 qpAdm -p "$PARFILE" > "$OUTFILE"
 
 # --- Optional: extract admixture proportions ---
-grep -E "left pop|right pop|admixture proportions|stderr" "$OUTFILE"
+grep -E "left pop|admixture proportions|stderr" "$OUTFILE"
