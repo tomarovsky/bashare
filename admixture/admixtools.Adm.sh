@@ -1,18 +1,12 @@
 #!/bin/bash
 set -euo pipefail
 
-if [[ $# -ne 5 ]]; then
-    echo "Usage: $0 <prefix> <left_groups> <right_groups> <target_group> <outfile>"
-    echo ""
-    echo "  left_groups  : multiple groups separated by ';', each in format name:sample1,sample2,..."
-    echo "  right_groups : multiple groups separated by ';', each in format name:sample1,sample2,..."
-    echo "  target_group : single group in format name:sample1,sample2,..."
-    echo ""
+if [[ $# -ne 4 ]]; then
+    echo "Usage: $0 <left_groups> <right_groups> <target_samples> <outfile>"
     echo "Example:"
-    echo "  $0 mzib.mfoi.allsamples.filt.mask.auto.snp.plink \\"
-    echo "     Martes_martes:S1,S2,S3;Martes_zibellina:T1,T2,T3 \\"
-    echo "     Martes_foina:R1,R2 \\"
-    echo "     hybrids:T84,T87 \\"
+    echo "  $0 \"sables:10xmzib,S26,T8; pines:10xmmar,S44,S46\" \\"
+    echo "     \"foina:10xmfoi; out:1344\" \\"
+    echo "     \"T18,T87\" \\"
     echo "     qpAdm_results.txt"
     exit 1
 fi
@@ -20,49 +14,55 @@ fi
 source $(conda info --base)/etc/profile.d/conda.sh
 conda activate admixtools
 
-PREFIX=$1
-LEFT=$2
-RIGHT=$3
-TARGET=$4
-OUTFILE=$5
+LEFT_INPUT=$1
+RIGHT_INPUT=$2
+TARGET_SAMPLES_INPUT=$3
+OUTFILE=$4
 
+PREFIX="dataset"  # Используй своё имя файла без расширения
 GENO_FILE="${PREFIX}.geno"
 SNP_FILE="${PREFIX}.snp"
 IND_FILE="${PREFIX}.ind"
 
-# --- Temporary directory ---
 TMPDIR="${TMPDIR:-/tmp}/admixtools_qpAdm_$(date +%s)_$$"
 mkdir -p "$TMPDIR"
 trap "rm -rf ${TMPDIR}" EXIT
 
-# --- Function to parse groups ---
-parse_group() {
+# --- Функция для парсинга групп ---
+parse_groups() {
     local arg="$1"
-    local name=$(echo "$arg" | cut -d':' -f1)
-    local samples=$(echo "$arg" | cut -d':' -f2)
-    IFS=',' read -ra arr <<< "$samples"
-    echo "$name" "${arr[*]}"
+    declare -A grp_samples
+    IFS=';' read -ra parts <<< "$arg"
+    for part in "${parts[@]}"; do
+        part=$(echo "$part" | xargs)  # убираем лишние пробелы
+        name=$(echo "$part" | cut -d':' -f1)
+        samples=$(echo "$part" | cut -d':' -f2)
+        IFS=',' read -ra arr <<< "$samples"
+        grp_samples["$name"]="${arr[*]}"
+    done
+    echo "$(declare -p grp_samples)"
 }
 
-# --- Parse left groups ---
-declare -A LEFT_MAP
-IFS=';' read -ra LEFT_GROUPS <<< "$LEFT"
-for group in "${LEFT_GROUPS[@]}"; do
-    read name samples <<< "$(parse_group "$group")"
-    LEFT_MAP[$name]="$samples"
+# --- Парсим left и right ---
+eval "$(parse_groups "$LEFT_INPUT")"
+LEFT_NAMES=(${!grp_samples[@]})
+LEFT_SAMPLES=()
+for n in "${LEFT_NAMES[@]}"; do
+    IFS=' ' read -ra tmp <<< "${grp_samples[$n]}"
+    LEFT_SAMPLES+=("${tmp[@]}")
 done
 
-# --- Parse right groups ---
-declare -A RIGHT_MAP
-IFS=';' read -ra RIGHT_GROUPS <<< "$RIGHT"
-for group in "${RIGHT_GROUPS[@]}"; do
-    read name samples <<< "$(parse_group "$group")"
-    RIGHT_MAP[$name]="$samples"
+eval "$(parse_groups "$RIGHT_INPUT")"
+RIGHT_NAMES=(${!grp_samples[@]})
+RIGHT_SAMPLES=()
+for n in "${RIGHT_NAMES[@]}"; do
+    IFS=' ' read -ra tmp <<< "${grp_samples[$n]}"
+    RIGHT_SAMPLES+=("${tmp[@]}")
 done
 
-# --- Parse target group ---
-read TARGET_NAME TARGET_SAMPLES <<< "$(parse_group "$TARGET")"
-IFS=' ' read -ra TARGET_ARR <<< "$TARGET_SAMPLES"
+# --- Target ---
+IFS=',' read -ra TARGET_SAMPLES <<< "$TARGET_SAMPLES_INPUT"
+TARGET_NAME="target"
 
 # --- Read original .ind ---
 ORIG_IND=()
@@ -75,59 +75,54 @@ IND_TEMP="${TMPDIR}/dataset.ind"
 POPFILE="${TMPDIR}/poplist.txt"
 PARFILE="${TMPDIR}/parfile.par"
 
-# --- Create .ind ---
+# --- Создаём .ind ---
 > "$IND_TEMP"
 for sample in "${ORIG_IND[@]}"; do
-    assigned="ignore"
-    # Check left
-    for pop in "${!LEFT_MAP[@]}"; do
-        if [[ " ${LEFT_MAP[$pop]} " =~ " $sample " ]]; then
-            assigned="$pop"
-            break
-        fi
-    done
-    # Check right
-    if [[ "$assigned" == "ignore" ]]; then
-        for pop in "${!RIGHT_MAP[@]}"; do
-            if [[ " ${RIGHT_MAP[$pop]} " =~ " $sample " ]]; then
-                assigned="$pop"
+    pop="ignore"
+    if [[ " ${TARGET_SAMPLES[*]} " =~ " $sample " ]]; then
+        pop="$TARGET_NAME"
+    else
+        for name in "${LEFT_NAMES[@]}"; do
+            IFS=' ' read -ra tmp <<< "${grp_samples[$name]}"
+            if [[ " ${tmp[*]} " =~ " $sample " ]]; then
+                pop="$name"
                 break
             fi
         done
-    fi
-    # Check target
-    if [[ "$assigned" == "ignore" ]]; then
-        if [[ " ${TARGET_ARR[*]} " =~ " $sample " ]]; then
-            assigned="$TARGET_NAME"
+        if [[ "$pop" == "ignore" ]]; then
+            for name in "${RIGHT_NAMES[@]}"; do
+                IFS=' ' read -ra tmp <<< "${grp_samples[$name]}"
+                if [[ " ${tmp[*]} " =~ " $sample " ]]; then
+                    pop="$name"
+                    break
+                fi
+            done
         fi
     fi
-    echo -e "${sample}\tU\t${assigned}" >> "$IND_TEMP"
+    echo -e "${sample}\tU\t${pop}" >> "$IND_TEMP"
 done
 
-# --- Create poplist.txt ---
+# --- Создаём poplist.txt ---
 {
-    echo "$TARGET_NAME"
-    for pop in "${!LEFT_MAP[@]}"; do
-        echo "$pop"
-    done
-    for pop in "${!RIGHT_MAP[@]}"; do
-        echo "$pop"
-    done
+    echo "target: $TARGET_NAME"
+    echo -n "left: "
+    echo "${LEFT_NAMES[*]}" | tr ' ' ','
+    echo -n "right: "
+    echo "${RIGHT_NAMES[*]}" | tr ' ' ','
 } > "$POPFILE"
 
-# --- Create parfile ---
+# --- Создаём parfile ---
 cat > "$PARFILE" <<EOF
 genotypename: $GENO_FILE
 snpname:      $SNP_FILE
 indivname:    $IND_TEMP
 popfilename:  $POPFILE
-details:      YES
 allsnps:      YES
 inbreed:      NO
 EOF
 
-# --- Run qpAdm ---
+# --- Запуск qpAdm ---
 qpAdm -p "$PARFILE" > "$OUTFILE"
 
-# --- Optional: extract admixture proportions ---
-grep -E "left pop|admixture proportions|stderr" "$OUTFILE"
+# Optional: краткий вывод
+grep -E "estimated proportions|std errors" "$OUTFILE"
