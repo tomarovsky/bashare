@@ -32,32 +32,35 @@ trap "rm -rf ${TMPDIR}" EXIT
 # --- Функция для парсинга групп ---
 parse_groups() {
     local arg="$1"
-    declare -A grp_samples
+    local arr_name="$2"
+    declare -g -A "$arr_name"      # создаём глобальный ассоциативный массив
+    local -n grp="$arr_name"       # локальная ссылка на массив по имени
     IFS=';' read -ra parts <<< "$arg"
     for part in "${parts[@]}"; do
         part=$(echo "$part" | xargs)  # убираем лишние пробелы
         name=$(echo "$part" | cut -d':' -f1)
         samples=$(echo "$part" | cut -d':' -f2)
         IFS=',' read -ra arr <<< "$samples"
-        grp_samples["$name"]="${arr[*]}"
+        grp["$name"]="${arr[*]}"
     done
-    echo "$(declare -p grp_samples)"
 }
 
 # --- Парсим left и right ---
-eval "$(parse_groups "$LEFT_INPUT")"
-LEFT_NAMES=(${!grp_samples[@]})
+parse_groups "$LEFT_INPUT" LEFT_GRP
+parse_groups "$RIGHT_INPUT" RIGHT_GRP
+
+LEFT_NAMES=(${!LEFT_GRP[@]})
+RIGHT_NAMES=(${!RIGHT_GRP[@]})
+
 LEFT_SAMPLES=()
 for n in "${LEFT_NAMES[@]}"; do
-    IFS=' ' read -ra tmp <<< "${grp_samples[$n]}"
+    IFS=' ' read -ra tmp <<< "${LEFT_GRP[$n]}"
     LEFT_SAMPLES+=("${tmp[@]}")
 done
 
-eval "$(parse_groups "$RIGHT_INPUT")"
-RIGHT_NAMES=(${!grp_samples[@]})
 RIGHT_SAMPLES=()
 for n in "${RIGHT_NAMES[@]}"; do
-    IFS=' ' read -ra tmp <<< "${grp_samples[$n]}"
+    IFS=' ' read -ra tmp <<< "${RIGHT_GRP[$n]}"
     RIGHT_SAMPLES+=("${tmp[@]}")
 done
 
@@ -84,7 +87,7 @@ for sample in "${ORIG_IND[@]}"; do
         pop="$TARGET_NAME"
     else
         for name in "${LEFT_NAMES[@]}"; do
-            IFS=' ' read -ra tmp <<< "${grp_samples[$name]}"
+            IFS=' ' read -ra tmp <<< "${LEFT_GRP[$name]}"
             if [[ " ${tmp[*]} " =~ " $sample " ]]; then
                 pop="$name"
                 break
@@ -92,7 +95,7 @@ for sample in "${ORIG_IND[@]}"; do
         done
         if [[ "$pop" == "ignore" ]]; then
             for name in "${RIGHT_NAMES[@]}"; do
-                IFS=' ' read -ra tmp <<< "${grp_samples[$name]}"
+                IFS=' ' read -ra tmp <<< "${RIGHT_GRP[$name]}"
                 if [[ " ${tmp[*]} " =~ " $sample " ]]; then
                     pop="$name"
                     break
