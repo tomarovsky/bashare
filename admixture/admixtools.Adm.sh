@@ -1,10 +1,11 @@
 #!/bin/bash
 set -euo pipefail
 
-if [[ $# -ne 4 ]]; then
-    echo "Usage: $0 <left_groups> <right_groups> <target_samples> <outfile>"
+if [[ $# -ne 5 ]]; then
+    echo "Usage: $0 <plink_prefix> <left_groups> <right_groups> <target_samples> <outfile>"
     echo "Example:"
-    echo "  $0 \"sables:10xmzib,S26,T8; pines:10xmmar,S44,S46\" \\"
+    echo "  $0 mzib.mfoi.allsamples.filt.mask.auto.snp.plink \\"
+    echo "     \"sables:10xmzib,S26,T8; pines:10xmmar,S44,S46\" \\"
     echo "     \"foina:10xmfoi; out:1344\" \\"
     echo "     \"T18,T87\" \\"
     echo "     qpAdm_results.txt"
@@ -14,12 +15,12 @@ fi
 source $(conda info --base)/etc/profile.d/conda.sh
 conda activate admixtools
 
-LEFT_INPUT=$1
-RIGHT_INPUT=$2
-TARGET_SAMPLES_INPUT=$3
-OUTFILE=$4
+PREFIX=$1
+LEFT_INPUT=$2
+RIGHT_INPUT=$3
+TARGET_SAMPLES_INPUT=$4
+OUTFILE=$5
 
-PREFIX="dataset"  # Используй своё имя файла без расширения
 GENO_FILE="${PREFIX}.geno"
 SNP_FILE="${PREFIX}.snp"
 IND_FILE="${PREFIX}.ind"
