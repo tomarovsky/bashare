@@ -6,6 +6,9 @@ if [ "$#" -lt 3 ]; then
     exit 1
 fi
 
+source $(conda info --base)/etc/profile.d/conda.sh
+conda activate varcall
+
 VCF_FILE=$1
 MASK_BED=$2
 THRESHOLD=$3
