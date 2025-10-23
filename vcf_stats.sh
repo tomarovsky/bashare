@@ -19,7 +19,7 @@ NUM_SNPS=$(zcat "$VCF_FILE" | grep -v '^#' | grep -Pvc "^$EXCLUDE_SCAF\t")
 
 # Mean and median based VARIANT COUNTS
 read SAMPLE MEAN MEDIAN < <(
-grep -Pv "^$EXCLUDE_SYN\t" "$VARIANT_COUNTS" | python3 - <<'PYTHON'
+grep -Pv "^$EXCLUDE_SYN\t" "$VARIANT_COUNTS" | python3 - <<PYTHON
 import sys
 import pandas as pd
 
