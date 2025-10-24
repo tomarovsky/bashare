@@ -29,10 +29,8 @@ sample_id = df.columns[4]
 # masking
 df_filtered = df[(df['scaffold'] != exclude_chr) & (df['color'] != 'gray')].copy()
 
-df_filtered[sample_id] = pd.to_numeric(df_filtered[sample_id], errors='coerce')
-
-mean = df_filtered[sample_id].mean()
-median = df_filtered[sample_id].median()
+mean = round(df_filtered[sample_id].mean(), 2)
+median = round(df_filtered[sample_id].median(), 2)
 
 print(f"{mean}\t{median}")
 END
