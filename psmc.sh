@@ -132,7 +132,7 @@ fi
 # PSMC excluding ChrX
 echo "$(date) | Removing ${CHRX_ID}"
 zcat "${ALL_CHR_DIR}/${SAMPLE}.fq.gz" | \
-awk -v ID_TO_REMOVE="${CHRX_ID}" 'BEGIN {RS="@"; ORS="@"} /^$/ {ORS=""; next} { if ($0 !~ "^" ID_TO_REMOVE "[ \t\n]") { print $0 }}' | gzip > "${NO_CHRX_DIR}/${SAMPLE}.no_ChrX.fq.gz"
+    awk -v ID_TO_REMOVE="${CHRX_ID}" 'BEGIN {RS="@"; ORS="@"} /^$/ {ORS=""; next} { if ($0 !~ "^" ID_TO_REMOVE "[ \t\n]") { print $0 }}' | gzip > "${NO_CHRX_DIR}/${SAMPLE}.no_ChrX.fq.gz"
 
 echo "$(date) | Fasta-like consensus file preparation";
 fq2psmcfa -q20 "${NO_CHRX_DIR}/${SAMPLE}.no_ChrX.fq.gz" > "${NO_CHRX_DIR}/${SAMPLE}.no_ChrX.diploid.psmcfa"
