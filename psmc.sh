@@ -1,7 +1,7 @@
 #!/bin/bash
 # based on https://github.com/atotickov/BerryTart/bash_scr/PSMS.sh
 # mamba create -n PSMC -c bioconda -c conda-forge -c mahajrod routoolpa mace mavr parallel samtools=0.1.19
-# export PATH="${TOOLS}/psmc:${TOOLS}/psmc/utils:${TOOLS}/bedtools-2.30.0/bin:${PATH}"
+# export PATH="${TOOLS}/psmc:${TOOLS}/psmc/utils:${TOOLS}/bedtools-2.31.1/bin:${PATH}"
 
 ASSEMBLY=""
 BAM_FILE=""
