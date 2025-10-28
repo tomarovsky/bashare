@@ -1,11 +1,12 @@
 #!/bin/bash
 # based on https://github.com/atotickov/BerryTart/bash_scr/PSMS.sh
 # mamba create -n PSMC -c bioconda -c conda-forge -c mahajrod routoolpa mace mavr parallel samtools=0.1.19
-# export PATH="/mnt/tank/scratch/atomarovsky/tools/psmc:/mnt/tank/scratch/atomarovsky/tools/psmc/utils:${PATH}"
+# export PATH="${TOOLS}/psmc:${TOOLS}/psmc/utils:${TOOLS}/bedtools-2.30.0/bin:${PATH}"
 
 ASSEMBLY=""
 BAM_FILE=""
 STATS_FILE=""
+MASK_FILE=""
 GEN_TIME=""
 MU_RATE=""
 CHRX_ID=""
@@ -21,7 +22,8 @@ print_usage() {
     echo "Required options:"
     echo " -f   Genome assembly file in .fasta format (with .fasta file there should be a .fasta.fai file)"
     echo " -b   Full path to the alignment .bam file (a .bam.bai file must exist)"
-    echo " -m   Full path to the sample's whole genome stats file (e.g., _whole_genome_stats.csv)"
+    echo " -w   Full path to the sample's whole genome stats file (e.g., _whole_genome_stats.csv)"
+    echo " -m   Full path to the BED mask file"
     echo " -g   Generation time"
     echo " -u   Mutation rate"
     echo " -c   ChrX scaffold name"
@@ -34,15 +36,16 @@ print_usage() {
     echo " -p   PSMC time segment pattern (e.g., '4+25*2+4+6') (Default: \"${PATTERN}\")"
     echo " -z   (Optional) Run 100 bootstrap analysis. Default: ${ROUNDS}"
     echo ""
-    echo "Usage: $0 -f assembly.fasta -b sample.bam -m whole_genome_stats.csv -g 5 -u 4.64e-9 -c scaff_19"
+    echo "Usage: $0 -f assembly.fasta -b sample.bam -w whole_genome_stats.csv -m mask.bed -g 5 -u 4.64e-9 -c scaff_19"
 }
 
 # --- Process command-line options ---
-while getopts 'f:b:m:g:u:c:j:n:t:r:p:Z' flag; do
+while getopts 'f:b:w:m:g:u:c:j:n:t:r:p:Z' flag; do
     case "${flag}" in
         f) ASSEMBLY="${OPTARG}" ;;
         b) BAM_FILE="${OPTARG}" ;;
-        m) STATS_FILE="${OPTARG}" ;;
+        w) STATS_FILE="${OPTARG}" ;;
+        m) MASK_FILE="${OPTARG}" ;;
         g) GEN_TIME="${OPTARG}" ;;
         u) MU_RATE="${OPTARG}" ;;
         c) CHRX_ID="${OPTARG}" ;;
@@ -88,11 +91,14 @@ bcftools view "${ALL_CHR_DIR}/${SAMPLE}.bcf" | gzip > "${ALL_CHR_DIR}/${SAMPLE}.
 rm -r "${ALL_CHR_DIR}/split"
 rm "${ALL_CHR_DIR}/${SAMPLE}.bcf"
 
+# VCF masking
+bedtools intersect -header -v -a "${ALL_CHR_DIR}/${SAMPLE}.vcf.gz" -b ${MASK} | bgzip -c >"${ALL_CHR_DIR}/${SAMPLE}.masked.vcf.gz"
+
 # -D and -d parameters from whole genome stats file
 MIN_DEPTH=$(awk 'NR==2{printf "%.0f", $2/3}' "${STATS_FILE}")
 MAX_DEPTH=$(awk 'NR==2{printf "%.0f", $2*2.5}' "${STATS_FILE}")
 echo "$(date) | Consensus file | -d:${MIN_DEPTH} -D:${MAX_DEPTH}"
-zcat "${ALL_CHR_DIR}/${SAMPLE}.vcf.gz" | vcfutils.pl vcf2fq -d "${MIN_DEPTH}" -D "${MAX_DEPTH}" | gzip > "${ALL_CHR_DIR}/${SAMPLE}.fq.gz"
+zcat "${ALL_CHR_DIR}/${SAMPLE}.masked.vcf.gz" | vcfutils.pl vcf2fq -d "${MIN_DEPTH}" -D "${MAX_DEPTH}" | gzip > "${ALL_CHR_DIR}/${SAMPLE}.fq.gz"
 
 # PSMC (all chromosomes)
 echo "$(date) | Fasta-like consensus file preparation";
