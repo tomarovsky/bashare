@@ -86,10 +86,8 @@ prepare_region_list.py -r "${ASSEMBLY}.fai" -s -m 1500000 -n 1 -g samtools -x 10
     parallel -j "${THREADS}" "samtools mpileup -C50 -uf ${ASSEMBLY} -r {} ${BAM_FILE} | bcftools view -b -c - > ${ALL_CHR_DIR}/split/bcf/tmp.{#}.bcf"
 
 echo "$(date) | BCF -> VCF"
-bcftools cat $(ls ${ALL_CHR_DIR}/split/bcf/tmp.*.bcf | sort -V) > ${ALL_CHR_DIR}/${SAMPLE}.bcf
-bcftools view "${ALL_CHR_DIR}/${SAMPLE}.bcf" | gzip > "${ALL_CHR_DIR}/${SAMPLE}.vcf.gz"
+bcftools cat $(ls ${ALL_CHR_DIR}/split/bcf/tmp.*.bcf | sort -V) | bcftools view - | gzip > "${ALL_CHR_DIR}/${SAMPLE}.vcf.gz"
 rm -r "${ALL_CHR_DIR}/split"
-rm "${ALL_CHR_DIR}/${SAMPLE}.bcf"
 
 # VCF masking
 bedtools intersect -header -v -a "${ALL_CHR_DIR}/${SAMPLE}.vcf.gz" -b ${MASK} | bgzip -c >"${ALL_CHR_DIR}/${SAMPLE}.masked.vcf.gz"
