@@ -1,7 +1,7 @@
 #!/bin/bash
 # based on https://github.com/atotickov/BerryTart/bash_scr/PSMS.sh
 # mamba create -n PSMC -c bioconda -c conda-forge -c mahajrod routoolpa mace mavr parallel samtools=0.1.19
-# export PATH="${TOOLS}/psmc:${TOOLS}/psmc/utils:${TOOLS}/bedtools-2.31.1/bin:${PATH}"
+# export PATH="${TOOLS}/psmc:${TOOLS}/psmc/utils:${TOOLS}/bedtools-2.31.1/bin:${TOOLS}/htslib-1.22.1/bin:${PATH}"
 
 ASSEMBLY=""
 BAM_FILE=""
@@ -90,7 +90,7 @@ bcftools cat $(ls ${ALL_CHR_DIR}/split/bcf/tmp.*.bcf | sort -V) | bcftools view 
 rm -r "${ALL_CHR_DIR}/split"
 
 # VCF masking
-bedtools intersect -header -v -a "${ALL_CHR_DIR}/${SAMPLE}.vcf.gz" -b ${MASK} | bgzip -c >"${ALL_CHR_DIR}/${SAMPLE}.masked.vcf.gz"
+bedtools intersect -header -v -a "${ALL_CHR_DIR}/${SAMPLE}.vcf.gz" -b ${MASK_FILE} | bgzip -c >"${ALL_CHR_DIR}/${SAMPLE}.masked.vcf.gz"
 
 # -D and -d parameters from whole genome stats file
 MIN_DEPTH=$(awk 'NR==2{printf "%.0f", $2/3}' "${STATS_FILE}")
