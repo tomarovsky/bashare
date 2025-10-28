@@ -89,7 +89,7 @@ echo "$(date) | BCF -> VCF"
 bcftools cat $(ls ${ALL_CHR_DIR}/split/bcf/tmp.*.bcf | sort -V) | bcftools view - | gzip > "${ALL_CHR_DIR}/${SAMPLE}.vcf.gz"
 rm -r "${ALL_CHR_DIR}/split"
 
-# VCF masking
+echo "$(date) | VCF masking"
 bedtools intersect -header -v -a "${ALL_CHR_DIR}/${SAMPLE}.vcf.gz" -b ${MASK_FILE} | bgzip -c >"${ALL_CHR_DIR}/${SAMPLE}.masked.vcf.gz"
 
 # -D and -d parameters from whole genome stats file
