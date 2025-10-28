@@ -29,16 +29,16 @@ print_usage() {
     echo "Optional:"
     echo " -j   Number of threads for parallel processes (Default: ${THREADS})"
     echo " -N   PSMC parameter N (Max number of iterations) (Default: ${N_PSMC})"
-    echo " -T   PSMC parameter t (Max number of hidden states) (Default: ${T_PSMC})"
-    echo " -L   PSMC parameter r (Recombination rate parameter) (Default: ${R_PSMC})"
-    echo " -P   PSMC time segment pattern (e.g., '4+25*2+4+6') (Default: \"${PATTERN}\")"
-    echo " -r   (Optional) Run 100 bootstrap analysis. Default: ${ROUNDS}"
+    echo " -t   PSMC parameter t (Max number of hidden states) (Default: ${T_PSMC})"
+    echo " -r   PSMC parameter r (Recombination rate parameter) (Default: ${R_PSMC})"
+    echo " -p   PSMC time segment pattern (e.g., '4+25*2+4+6') (Default: \"${PATTERN}\")"
+    echo " -z   (Optional) Run 100 bootstrap analysis. Default: ${ROUNDS}"
     echo ""
     echo "Usage: $0 -f assembly.fasta -b sample.bam -m whole_genome_stats.csv -g 5 -u 4.64e-9 -c scaff_19"
 }
 
 # --- Process command-line options ---
-while getopts 'f:b:m:g:u:c:j:N:T:L:P:r' flag; do
+while getopts 'f:b:m:g:u:c:j:n:t:r:p:Z' flag; do
     case "${flag}" in
         f) ASSEMBLY="${OPTARG}" ;;
         b) BAM_FILE="${OPTARG}" ;;
@@ -47,11 +47,11 @@ while getopts 'f:b:m:g:u:c:j:N:T:L:P:r' flag; do
         u) MU_RATE="${OPTARG}" ;;
         c) CHRX_ID="${OPTARG}" ;;
         j) THREADS="${OPTARG}" ;;
-        N) N_PSMC="${OPTARG}" ;;
-        T) T_PSMC="${OPTARG}" ;;
-        L) R_PSMC="${OPTARG}" ;;
-        P) PATTERN="${OPTARG}" ;;
-        r) ROUNDS=true ;;
+        n) N_PSMC="${OPTARG}" ;;
+        t) T_PSMC="${OPTARG}" ;;
+        r) R_PSMC="${OPTARG}" ;;
+        p) PATTERN="${OPTARG}" ;;
+        Z) ROUNDS=true ;;
         *) print_usage
            exit 1 ;;
     esac
