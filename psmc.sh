@@ -1,6 +1,6 @@
 #!/bin/bash
 # based on https://github.com/atotickov/BerryTart/bash_scr/PSMS.sh
-# mamba create -n PSMC -c bioconda -c conda-forge -c mahajrod routoolpa mace mavr parallel samtools=0.1.19
+# mamba create -n PSMC -c bioconda -c conda-forge -c mahajrod routoolpa mace mavr parallel gnuplot samtools=0.1.19
 # export PATH="${TOOLS}/psmc:${TOOLS}/psmc/utils:${TOOLS}/bedtools-2.31.1/bin:${TOOLS}/htslib-1.22.1/bin:${PATH}"
 
 ASSEMBLY=""
@@ -110,7 +110,8 @@ psmc -N"${N_PSMC}" -t"${T_PSMC}" -r"${R_PSMC}" -p "${PATTERN}" -o "${ALL_CHR_DIR
 
 echo "$(date) | PSMC plot";
 psmc_plot.pl -u "${MU_RATE}" -g "${GEN_TIME}" -R "${ALL_CHR_DIR}/${SAMPLE}.G${GEN_TIME}_U${MU_RATE}.diploid" "${ALL_CHR_DIR}/${SAMPLE}.diploid.psmc"
-# todo: add rm for diploid files
+mv ${ALL_CHR_DIR}/${SAMPLE}.G${GEN_TIME}_U${MU_RATE}.diploid.0.txt ${ALL_CHR_DIR}/${SAMPLE}.G${GEN_TIME}_U${MU_RATE}.diploid.txt
+rm ${ALL_CHR_DIR}/${SAMPLE}.G${GEN_TIME}_U${MU_RATE}.diploid.{eps,gp,par}
 
 # Bootstrapping (optional -r)
 if $ROUNDS; then
@@ -143,7 +144,8 @@ psmc -N"${N_PSMC}" -t"${T_PSMC}" -r"${R_PSMC}" -p "${PATTERN}" -o "${NO_CHRX_DIR
 
 echo "$(date) | PSMC plot";
 psmc_plot.pl -u "${MU_RATE}" -g "${GEN_TIME}" -R "${NO_CHRX_DIR}/${SAMPLE}.G${GEN_TIME}_U${MU_RATE}.no_ChrX.diploid" "${NO_CHRX_DIR}/${SAMPLE}.no_ChrX.diploid.psmc"
-# todo: add rm for diploid files
+mv ${NO_CHRX_DIR}/${SAMPLE}.G${GEN_TIME}_U${MU_RATE}.no_ChrX.diploid.0.txt ${NO_CHRX_DIR}/${SAMPLE}.G${GEN_TIME}_U${MU_RATE}.no_ChrX.diploid.txt
+rm ${NO_CHRX_DIR}/${SAMPLE}.G${GEN_TIME}_U${MU_RATE}.no_ChrX.diploid.{eps,gp,par}
 
 # Bootstrapping (optional -r)
 if $ROUNDS; then
@@ -156,7 +158,6 @@ if $ROUNDS; then
 
     echo "$(date) | PSMC bootstrap plot";
     psmc_plot.pl -u "${MU_RATE}" -g "${GEN_TIME}" -R "${NO_CHRX_DIR}/round" "${NO_CHRX_DIR}/${SAMPLE}.no_ChrX.round.psmc"
-    # Note: Corrected the variable 'res_noX' to 'NO_CHRX_DIR'
     cat ${NO_CHRX_DIR}/round.*.txt > "${NO_CHRX_DIR}/${SAMPLE}.G${GEN_TIME}_U${MU_RATE}.no_ChrX.round.txt"
     rm ${NO_CHRX_DIR}/round.*.txt
 fi
