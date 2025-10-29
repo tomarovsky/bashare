@@ -4,19 +4,29 @@ set -euo pipefail
 if [[ $# -lt 3 ]]; then
     echo "Usage: $0 <FEATURES_BED_FILES> GENOME_BASE SCAFFOLD"
     echo "Example: $0 *.features.bed /path/to/assembly/mzib HiC_scaffold_19"
+    echo "Example (with mask): $0 *.features.bed /path/to/assembly/mzib HiC_scaffold_19 mask.bed"
     exit 1
 fi
 
-# Parse arguments safely
-BED_FILES=("${@:1:$#-2}")     # all except last two
-GENOME_BASE="${@: -2:1}"      # argument before last
-SCAFFOLD="${@: -1}"           # last argument
+# Parse arguments
+if [[ $# -ge 4 ]]; then
+    MASK="${@: -1}"                # last argument — MASK
+    SCAFFOLD="${@: -2:1}"          # argument before last — SCAFFOLD
+    GENOME_BASE="${@: -3:1}"       # third from last — GENOME_BASE
+    BED_FILES=("${@:1:$#-3}")      # all before them — BED files
+else
+    MASK=""                        # no mask
+    SCAFFOLD="${@: -1}"            # last — SCAFFOLD
+    GENOME_BASE="${@: -2:1}"       # second last — GENOME_BASE
+    BED_FILES=("${@:1:$#-2}")      # all before them — BED files
+fi
 
 # Input files
 GENOME_PREFIX=$(basename "$GENOME_BASE")
 LEN_FILE="${GENOME_BASE}.len"
 SYN_FILE="${GENOME_BASE}.syn"
 ORDEREDLIST_FILE="${GENOME_BASE}.orderedlist"
+CENTROMERE_BED="${GENOME_BASE}.centromere.bed"
 
 # Check existence
 for f in "$LEN_FILE" "$SYN_FILE" "$ORDEREDLIST_FILE"; do
@@ -30,6 +40,7 @@ OUT_LEN="${GENOME_PREFIX}.${SCAFFOLD}.len"
 OUT_WHITELIST="${GENOME_PREFIX}.${SCAFFOLD}.whitelist"
 OUT_ORDERED="${GENOME_PREFIX}.${SCAFFOLD}.orderedlist"
 OUT_SYN="${GENOME_PREFIX}.${SCAFFOLD}.syn"
+OUT_CENTROMERE_BED="${GENOME_PREFIX}.${SCAFFOLD}.centromere.bed"
 
 # Clear previous files if exist
 > "$OUT_BED"
@@ -37,18 +48,26 @@ OUT_SYN="${GENOME_PREFIX}.${SCAFFOLD}.syn"
 > "$OUT_WHITELIST"
 > "$OUT_ORDERED"
 > "$OUT_SYN"
+> "$OUT_CENTROMERE_BED"
 
 # Get chromosome name from genome.syn
 CHR_NAME=$(awk -v s="$SCAFFOLD" '$1==s {print $2}' "$SYN_FILE" | head -n1)
 if [[ -z "$CHR_NAME" ]]; then
-    echo "Error: scaffold $SCAFFOLD not found in $SYN_FILE"
+    echo "Error: $SCAFFOLD not found in $SYN_FILE"
     exit 1
 fi
 
 # Get length of scaffold from genome.len
 SCAFFOLD_LEN=$(awk -v s="$SCAFFOLD" '$1==s {print $2}' "$LEN_FILE" | head -n1)
 if [[ -z "$SCAFFOLD_LEN" ]]; then
-    echo "Error: scaffold $SCAFFOLD not found in $LEN_FILE"
+    echo "Error: $SCAFFOLD not found in $LEN_FILE"
+    exit 1
+fi
+
+# Get centromere positions
+CENTROMERE_COORDS=$(awk -v s="$CHR_NAME" '$1==s {print $2"\t"$3}' "$CENTROMERE_BED" | head -n1)
+if [[ -z "$CENTROMERE_COORDS" ]]; then
+    echo "Error: $CHR_NAME not found in $CENTROMERE_BED"
     exit 1
 fi
 
@@ -63,6 +82,7 @@ for file in "${BED_FILES[@]}"; do
     echo "${sample}.${SCAFFOLD}" >> "$OUT_WHITELIST"
     echo "${sample}.${CHR_NAME}" >> "$OUT_ORDERED"
     echo -e "${sample}.${SCAFFOLD}\t${sample}.${CHR_NAME}" >> "$OUT_SYN"
+    echo -e "${sample}.${CHR_NAME}\t${CENTROMERE_COORDS}" >> "$OUT_CENTROMERE_BED"
 done
 
 echo "[INFO] Done!"
