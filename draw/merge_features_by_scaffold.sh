@@ -29,9 +29,14 @@ ORDEREDLIST_FILE="${GENOME_BASE}.orderedlist"
 CENTROMERE_BED="${GENOME_BASE}.centromere.bed"
 
 # Check existence
-for f in "$LEN_FILE" "$SYN_FILE" "$ORDEREDLIST_FILE"; do
+for f in "$LEN_FILE" "$SYN_FILE" "$ORDEREDLIST_FILE" "$CENTROMERE_BED"; do
     [[ -f "$f" ]] || { echo "Error: $f not found"; exit 1; }
 done
+
+if [[ -n "$MASK" && ! -f "$MASK" ]]; then
+    echo "Error: mask.bed '$MASK' not found"
+    exit 1
+fi
 
 # Outfiles
 OUT_PREFIX="all_samples.${SCAFFOLD}"
@@ -58,16 +63,9 @@ if [[ -z "$CHR_NAME" ]]; then
 fi
 
 # Get length of scaffold from genome.len
-SCAFFOLD_LEN=$(awk -v s="$SCAFFOLD" '$1==s {print $2}' "$LEN_FILE" | head -n1)
+SCAFFOLD_LEN=$(awk -v s="$SCAFFOLD" '$1==s {print $2}' "$LEN_FILE")
 if [[ -z "$SCAFFOLD_LEN" ]]; then
     echo "Error: $SCAFFOLD not found in $LEN_FILE"
-    exit 1
-fi
-
-# Get centromere positions
-CENTROMERE_COORDS=$(awk -v s="$CHR_NAME" '$1==s {print $2"\t"$3}' "$CENTROMERE_BED" | head -n1)
-if [[ -z "$CENTROMERE_COORDS" ]]; then
-    echo "Error: $CHR_NAME not found in $CENTROMERE_BED"
     exit 1
 fi
 
@@ -82,13 +80,25 @@ for file in "${BED_FILES[@]}"; do
     echo "${sample}.${SCAFFOLD}" >> "$OUT_WHITELIST"
     echo "${sample}.${CHR_NAME}" >> "$OUT_ORDERED"
     echo -e "${sample}.${SCAFFOLD}\t${sample}.${CHR_NAME}" >> "$OUT_SYN"
-    echo -e "${sample}.${CHR_NAME}\t${CENTROMERE_COORDS}" >> "$OUT_CENTROMERE_BED"
+    awk -v s="$SCAFFOLD" -v id="$sample" '$1==s {print id"."$0}' "$CENTROMERE_BED" >> "$OUT_CENTROMERE_BED"
 done
 
-echo "[INFO] Done!"
 echo "Created files:"
 echo "  $OUT_BED"
 echo "  $OUT_LEN"
 echo "  $OUT_WHITELIST"
 echo "  $OUT_ORDERED"
 echo "  $OUT_SYN"
+
+# Prepare mask file if provided
+if [[ -n "$MASK" ]]; then
+    echo "Creating MASK file..."
+    OUT_MASK="${GENOME_PREFIX}.${SCAFFOLD}.mask.bed"
+    > "$OUT_MASK"
+    for file in "${BED_FILES[@]}"; do
+        filename=$(basename "$file")
+        sample="${filename%%.*}"
+        awk -v s="$SCAFFOLD" -v id="$sample" '$1==s {print id"."$0}' "$MASK" >> "$OUT_MASK"
+        echo "  $OUT_MASK"
+    done
+fi
