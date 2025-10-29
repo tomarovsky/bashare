@@ -56,7 +56,7 @@ OUT_CENTROMERE_BED="${GENOME_PREFIX}.${SCAFFOLD}.centromere.bed"
 > "$OUT_CENTROMERE_BED"
 
 # Get chromosome name from genome.syn
-CHR_NAME=$(awk -v s="$SCAFFOLD" '$1==s {print $2}' "$SYN_FILE" | head -n1)
+CHR_NAME=$(awk -v s="$SCAFFOLD" '$1==s {print $2}' "$SYN_FILE")
 if [[ -z "$CHR_NAME" ]]; then
     echo "Error: $SCAFFOLD not found in $SYN_FILE"
     exit 1
