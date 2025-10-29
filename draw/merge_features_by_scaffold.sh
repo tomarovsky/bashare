@@ -92,13 +92,13 @@ echo "  $OUT_SYN"
 
 # Prepare mask file if provided
 if [[ -n "$MASK" ]]; then
-    echo "Creating MASK file..."
     OUT_MASK="${GENOME_PREFIX}.${SCAFFOLD}.mask.bed"
     > "$OUT_MASK"
     for file in "${BED_FILES[@]}"; do
         filename=$(basename "$file")
         sample="${filename%%.*}"
         awk -v s="$SCAFFOLD" -v id="$sample" '$1==s {print id"."$0}' "$MASK" >> "$OUT_MASK"
-        echo "  $OUT_MASK"
     done
 fi
+
+echo "  $OUT_MASK"
