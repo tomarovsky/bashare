@@ -81,15 +81,15 @@ mkdir -p "${NO_CHRX_DIR}"
 echo "$(date) | Sample: ${SAMPLE}"
 
 # Variant Calling and VCF/FQ creation (all chromosomes)
-echo "$(date) | Variant calling"
+echo "$(date) | ${SAMPLE} | Variant calling"
 prepare_region_list.py -r "${ASSEMBLY}.fai" -s -m 1500000 -n 1 -g samtools -x 1000 2>/dev/null | \
     parallel -j "${THREADS}" "samtools mpileup -C50 -uf ${ASSEMBLY} -r {} ${BAM_FILE} | bcftools view -b -c - > ${ALL_CHR_DIR}/split/bcf/tmp.{#}.bcf"
 
-echo "$(date) | BCF -> VCF"
+echo "$(date) | ${SAMPLE} | BCF -> VCF"
 bcftools cat $(ls ${ALL_CHR_DIR}/split/bcf/tmp.*.bcf | sort -V) | bcftools view - | gzip > "${ALL_CHR_DIR}/${SAMPLE}.vcf.gz"
 rm -r "${ALL_CHR_DIR}/split"
 
-echo "$(date) | VCF masking"
+echo "$(date) | ${SAMPLE} | VCF masking"
 bedtools intersect -header -v -a "${ALL_CHR_DIR}/${SAMPLE}.vcf.gz" -b ${MASK_FILE} | bgzip -c >"${ALL_CHR_DIR}/${SAMPLE}.masked.vcf.gz"
 
 # -D and -d parameters from whole genome stats file
@@ -99,64 +99,64 @@ echo "$(date) | Consensus file | -d:${MIN_DEPTH} -D:${MAX_DEPTH}"
 zcat "${ALL_CHR_DIR}/${SAMPLE}.masked.vcf.gz" | vcfutils.pl vcf2fq -d "${MIN_DEPTH}" -D "${MAX_DEPTH}" | gzip > "${ALL_CHR_DIR}/${SAMPLE}.fq.gz"
 
 # PSMC (all chromosomes)
-echo "$(date) | Fasta-like consensus file preparation";
+echo "$(date) | ${SAMPLE} | Fasta-like consensus file preparation";
 fq2psmcfa -q20 "${ALL_CHR_DIR}/${SAMPLE}.fq.gz" > "${ALL_CHR_DIR}/${SAMPLE}.diploid.psmcfa"
 
-echo "$(date) | Fasta-like consensus file preparation for bootstrapping";
+echo "$(date) | ${SAMPLE} | Fasta-like consensus file preparation for bootstrapping";
 splitfa "${ALL_CHR_DIR}/${SAMPLE}.diploid.psmcfa" > "${ALL_CHR_DIR}/${SAMPLE}.diploid.split.psmcfa"
 
-echo "$(date) | PSMC calculation";
+echo "$(date) | ${SAMPLE} | PSMC calculation";
 psmc -N"${N_PSMC}" -t"${T_PSMC}" -r"${R_PSMC}" -p "${PATTERN}" -o "${ALL_CHR_DIR}/${SAMPLE}.diploid.psmc" "${ALL_CHR_DIR}/${SAMPLE}.diploid.psmcfa"
 
-echo "$(date) | PSMC plot";
+echo "$(date) | ${SAMPLE} | PSMC plot";
 psmc_plot.pl -u "${MU_RATE}" -g "${GEN_TIME}" -R "${ALL_CHR_DIR}/${SAMPLE}.G${GEN_TIME}_U${MU_RATE}.diploid" "${ALL_CHR_DIR}/${SAMPLE}.diploid.psmc"
 mv ${ALL_CHR_DIR}/${SAMPLE}.G${GEN_TIME}_U${MU_RATE}.diploid.0.txt ${ALL_CHR_DIR}/${SAMPLE}.G${GEN_TIME}_U${MU_RATE}.diploid.txt
 rm ${ALL_CHR_DIR}/${SAMPLE}.G${GEN_TIME}_U${MU_RATE}.diploid.{eps,gp,par}
 
 # Bootstrapping (optional -r)
 if $ROUNDS; then
-    echo "$(date) | PSMC 100 bootstrapping"
+    echo "$(date) | ${SAMPLE} | PSMC 100 bootstrapping"
     seq 100 | xargs -I{} echo "psmc -N${N_PSMC} -t${T_PSMC} -r${R_PSMC} -b -p \"${PATTERN}\" -o ${ALL_CHR_DIR}/round-{}.psmc ${ALL_CHR_DIR}/${SAMPLE}.diploid.split.psmcfa" > "${ALL_CHR_DIR}/seq100.txt"
     parallel -j "${THREADS}" < "${ALL_CHR_DIR}/seq100.txt"
     cat ${ALL_CHR_DIR}/round-*.psmc > "${ALL_CHR_DIR}/${SAMPLE}.round.psmc"
     rm ${ALL_CHR_DIR}/round-*.psmc
     rm ${ALL_CHR_DIR}/seq100.txt
 
-    echo "$(date) | PSMC bootstrap plot";
+    echo "$(date) | ${SAMPLE} | PSMC bootstrap plot";
     psmc_plot.pl -u "${MU_RATE}" -g "${GEN_TIME}" -R "${ALL_CHR_DIR}/round" "${ALL_CHR_DIR}/${SAMPLE}.round.psmc"
     cat ${ALL_CHR_DIR}/round-*.txt > "${ALL_CHR_DIR}/${SAMPLE}.G${GEN_TIME}_U${MU_RATE}.round.txt"
     rm ${ALL_CHR_DIR}/round-*.txt
 fi
 
 # PSMC excluding ChrX
-echo "$(date) | Removing ${CHRX_ID}"
+echo "$(date) | ${SAMPLE} | Removing ${CHRX_ID}"
 zcat "${ALL_CHR_DIR}/${SAMPLE}.fq.gz" | \
     awk -v ID_TO_REMOVE="${CHRX_ID}" 'BEGIN {RS="@"; ORS="@"} /^$/ {ORS=""; next} { if ($0 !~ "^" ID_TO_REMOVE "[ \t\n]") { print $0 }}' | gzip > "${NO_CHRX_DIR}/${SAMPLE}.no_ChrX.fq.gz"
 
-echo "$(date) | Fasta-like consensus file preparation";
+echo "$(date) | ${SAMPLE} | Fasta-like consensus file preparation";
 fq2psmcfa -q20 "${NO_CHRX_DIR}/${SAMPLE}.no_ChrX.fq.gz" > "${NO_CHRX_DIR}/${SAMPLE}.no_ChrX.diploid.psmcfa"
 
-echo "$(date) | Fasta-like consensus file preparation for bootstrapping";
+echo "$(date) | ${SAMPLE} | Fasta-like consensus file preparation for bootstrapping";
 splitfa "${NO_CHRX_DIR}/${SAMPLE}.no_ChrX.diploid.psmcfa" > "${NO_CHRX_DIR}/${SAMPLE}.no_ChrX.diploid.split.psmcfa"
 
-echo "$(date) | PSMC calculation";
+echo "$(date) | ${SAMPLE} | PSMC calculation";
 psmc -N"${N_PSMC}" -t"${T_PSMC}" -r"${R_PSMC}" -p "${PATTERN}" -o "${NO_CHRX_DIR}/${SAMPLE}.no_ChrX.diploid.psmc" "${NO_CHRX_DIR}/${SAMPLE}.no_ChrX.diploid.psmcfa"
 
-echo "$(date) | PSMC plot";
+echo "$(date) | ${SAMPLE} | PSMC plot";
 psmc_plot.pl -u "${MU_RATE}" -g "${GEN_TIME}" -R "${NO_CHRX_DIR}/${SAMPLE}.G${GEN_TIME}_U${MU_RATE}.no_ChrX.diploid" "${NO_CHRX_DIR}/${SAMPLE}.no_ChrX.diploid.psmc"
 mv ${NO_CHRX_DIR}/${SAMPLE}.G${GEN_TIME}_U${MU_RATE}.no_ChrX.diploid.0.txt ${NO_CHRX_DIR}/${SAMPLE}.G${GEN_TIME}_U${MU_RATE}.no_ChrX.diploid.txt
 rm ${NO_CHRX_DIR}/${SAMPLE}.G${GEN_TIME}_U${MU_RATE}.no_ChrX.diploid.{eps,gp,par}
 
 # Bootstrapping (optional -r)
 if $ROUNDS; then
-    echo "$(date) | PSMC 100 bootstrapping"
+    echo "$(date) | ${SAMPLE} | PSMC 100 bootstrapping"
     seq 100 | xargs -I{} echo "psmc -N${N_PSMC} -t${T_PSMC} -r${R_PSMC} -b -p '${PATTERN}' -o ${NO_CHRX_DIR}/round-{}.psmc ${NO_CHRX_DIR}/${SAMPLE}.no_ChrX.diploid.split.psmcfa" > "${NO_CHRX_DIR}/seq100.txt"
     parallel -j "${THREADS}" < "${NO_CHRX_DIR}/seq100.txt"
     cat ${NO_CHRX_DIR}/round-*.psmc > "${NO_CHRX_DIR}/${SAMPLE}.no_ChrX.round.psmc"
     rm ${NO_CHRX_DIR}/round-*.psmc
     rm ${NO_CHRX_DIR}/seq100.txt
 
-    echo "$(date) | PSMC bootstrap plot";
+    echo "$(date) | ${SAMPLE} | PSMC bootstrap plot";
     psmc_plot.pl -u "${MU_RATE}" -g "${GEN_TIME}" -R "${NO_CHRX_DIR}/round" "${NO_CHRX_DIR}/${SAMPLE}.no_ChrX.round.psmc"
     cat ${NO_CHRX_DIR}/round.*.txt > "${NO_CHRX_DIR}/${SAMPLE}.G${GEN_TIME}_U${MU_RATE}.no_ChrX.round.txt"
     rm ${NO_CHRX_DIR}/round.*.txt
