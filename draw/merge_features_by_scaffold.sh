@@ -80,7 +80,7 @@ for file in "${BED_FILES[@]}"; do
     echo "${sample}.${SCAFFOLD}" >> "$OUT_WHITELIST"
     echo "${sample}.${CHR_NAME}" >> "$OUT_ORDERED"
     echo -e "${sample}.${SCAFFOLD}\t${sample}.${CHR_NAME}" >> "$OUT_SYN"
-    awk -v s="$SCAFFOLD" -v id="$sample" '$1==s {print id"."$0}' "$CENTROMERE_BED" >> "$OUT_CENTROMERE_BED"
+    awk -v s="$CHR_NAME" -v id="$sample" '$1==s {print id"."$0}' "$CENTROMERE_BED" >> "$OUT_CENTROMERE_BED"
 done
 
 echo "Created files:"
