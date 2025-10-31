@@ -14,6 +14,7 @@ STEP_SIZE="${5:-100000}"
 # Clear old output file
 > "$OUTPUT_FILE"
 
+{
 while read -r scaffold_name length_from_len_file; do
     length_line=$(grep -Pw "^${scaffold_name}\t" "$LEN_FILE")
 
@@ -36,3 +37,4 @@ while read -r scaffold_name length_from_len_file; do
     fi
 
 done < "$WHITELIST_FILE"
+} > "$OUTPUT_FILE"
