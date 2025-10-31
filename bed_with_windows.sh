@@ -1,6 +1,6 @@
 #!/bin/bash
 
-if [ "$#" -ne 6 ]; then
+if [ "$#" -lt 3 ] || [ "$#" -gt 5 ]; then
     echo "Usage: $0 LEN_FILE WHITELIST_FILE OUTPUT_FILE WINDOW_SIZE STEP_SIZE"
     exit 1
 fi
