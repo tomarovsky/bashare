@@ -15,7 +15,7 @@ STEP_SIZE=${5:-100000}
 
 {
     while read -r scaffold_name; do
-        length_line=$(grep -Pw "^${scaffold_name}\t" "$LEN_FILE")
+        length_line=$(grep -w "^${scaffold_name}" "$LEN_FILE")
 
         if [ -n "$length_line" ]; then
             scaffold_length=$(echo "$length_line" | awk '{print $2}')
