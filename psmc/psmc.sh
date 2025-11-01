@@ -118,7 +118,7 @@ elif [ -n "$VCF_FILE" ]; then
 
     ln -s "$(realpath ${VCF_FILE})" "${ALL_CHR_DIR}/${SAMPLE}.vcf.gz"
 
-    echo "$(date) | ${SAMPLE} | Created symlink: ${ALL_CHR_DIR}/${SAMPLE}.vcf.gz -> ${SOURCE_VCF}"
+    echo "$(date) | ${SAMPLE} | Created symlink: ${ALL_CHR_DIR}/${SAMPLE}.vcf.gz -> ${ALL_CHR_DIR}/${SAMPLE}.vcf.gz"
 fi
 
 
