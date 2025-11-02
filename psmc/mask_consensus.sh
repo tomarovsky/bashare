@@ -20,10 +20,10 @@ FASTA_MASKED_TMP=${CONSENSUS_FASTQ%.*}.tmp.masked.fasta
 QUAL_MASKED_TMP=${CONSENSUS_FASTQ%.*}.tmp.masked.qual
 
 # cleanup function
-cleanup() {
-    rm -f "$FASTA_TMP" "$QUAL_TMP" "$FASTA_MASKED_TMP" "$QUAL_MASKED_TMP"
-}
-trap cleanup EXIT # Execute cleanup on exit
+# cleanup() {
+#     rm -f "$FASTA_TMP" "$QUAL_TMP" "$FASTA_MASKED_TMP" "$QUAL_MASKED_TMP"
+# }
+# trap cleanup EXIT # Execute cleanup on exit
 
 
 echo "$(date) | Split $CONSENSUS_FASTQ into FASTA and QUAL..."
