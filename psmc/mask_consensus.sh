@@ -1,8 +1,8 @@
 #!/bin/bash
 set -euo pipefail
 
-if [ "$#" -ne 3 ]; then
-    echo "Usage: $0 <input.fastq.gz> <mask.bed> <output.fastq.gz>"
+if [ "$#" -ne 2 ]; then
+    echo "Usage: $0 <sample.fq.gz> <mask.bed>"
     exit 1
 fi
 
@@ -11,7 +11,7 @@ conda activate py38
 
 CONSENSUS_FASTQ="$1"
 MASK_BED="$2"
-OUTPUT_FASTQ_GZ="$3"
+OUTPUT_FASTQ_GZ="${CONSENSUS_FASTQ%.*.*}.masked.fq.gz"
 
 # temporary files
 FASTA_TMP=${CONSENSUS_FASTQ%.*}.tmp.fasta
