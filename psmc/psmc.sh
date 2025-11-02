@@ -1,11 +1,12 @@
 #!/bin/bash
 # based on https://github.com/atotickov/BerryTart/bash_scr/PSMS.sh
 # mamba create -n PSMC -c bioconda -c conda-forge -c mahajrod routoolpa mace mavr parallel gnuplot samtools=0.1.19
-# export PATH="${TOOLS}/psmc:${TOOLS}/psmc/utils:${TOOLS}/bedtools-2.31.1/bin:${TOOLS}/htslib-1.22.1/bin:${PATH}"
+# export PATH="${TOOLS}/psmc:${TOOLS}/psmc/utils:${TOOLS}/bedtools-2.31.1/bin:${TOOLS}/htslib-1.22.1/bin:${TOOLS}/Biocrutch/scripts/psmc/:${PATH}"
 
 ASSEMBLY=""
 BAM_FILE=""
 VCF_FILE=""
+UNMASKED_FQ=""
 STATS_FILE=""
 MASK_FILE=""
 GEN_TIME=""
@@ -22,8 +23,9 @@ ROUNDS=false
 print_usage() {
     echo "Required options:"
     echo " -f    Genome assembly file in .fasta format (with .fasta file there should be a .fasta.fai file)"
-    echo " -b    Full path to the alignment .bam file (a .bam.bai file must exist) (required if -v is not used)"
-    echo " -v    Full path to the input SAMPLE.vcf.gz file (required if -b is not used)"
+    echo " -b    Full path to the alignment .bam file (a .bam.bai file must exist) (required if -v or -q are not used)"
+    echo " -v    Full path to the input SAMPLE.vcf.gz file (required if -b or -q are not used)"
+    echo " -q    Full path to the unmasked consensus .fq.gz file (required if -b or -v are not used)"
     echo " -w    Full path to the sample's whole genome stats file (e.g., _whole_genome_stats.csv)"
     echo " -m    Full path to the BED mask file"
     echo " -g    Generation time"
@@ -38,15 +40,16 @@ print_usage() {
     echo " -p    PSMC time segment pattern (e.g., '4+25*2+4+6') (Default: \"${PATTERN}\")"
     echo " -z    (Optional) Run 100 bootstrap analysis. Default: ${ROUNDS}"
     echo ""
-    echo "Usage: $0 -f assembly.fasta [-b sample.bam | -v sample.vcf.gz] -w whole_genome_stats.csv -m mask.bed -g 5 -u 4.64e-9 -c scaff_19"
+    echo "Usage: $0 -f assembly.fasta [-b sample.bam | -v sample.vcf.gz | -q sample.unmasked.fq.gz] -w whole_genome_stats.csv -m mask.bed -g 5 -u 4.64e-9 -c scaff_19"
 }
 
 # --- Process command-line options ---
-while getopts 'f:b:v:w:m:g:u:c:j:n:t:r:p:z' flag; do
+while getopts 'f:b:v:q:w:m:g:u:c:j:n:t:r:p:z' flag; do
     case "${flag}" in
         f) ASSEMBLY="${OPTARG}" ;;
         b) BAM_FILE="${OPTARG}" ;;
         v) VCF_FILE="${OPTARG}" ;;
+        q) UNMASKED_FQ="${OPTARG}" ;;
         w) STATS_FILE="${OPTARG}" ;;
         m) MASK_FILE="${OPTARG}" ;;
         g) GEN_TIME="${OPTARG}" ;;
@@ -64,14 +67,20 @@ while getopts 'f:b:v:w:m:g:u:c:j:n:t:r:p:z' flag; do
 done
 
 # --- Check for required arguments ---
-if [ -z "$BAM_FILE" ] && [ -z "$VCF_FILE" ]; then
-    echo "Error: Missing required argument. You must provide either -b (BAM) or -v (VCF)."
+if [ -z "$BAM_FILE" ] && [ -z "$VCF_FILE" ] && [ -z "$UNMASKED_FQ" ]; then
+    echo "Error: Missing required argument. You must provide either -b (BAM), -v (VCF) or -q (unmasked FQ)."
     print_usage
     exit 1
 fi
 
-if [ -n "$BAM_FILE" ] && [ -n "$VCF_FILE" ]; then
-    echo "Error: Conflicting arguments. You cannot provide both -b (BAM) and -v (VCF)."
+# Check for conflicting arguments
+input_count=0
+[ -n "$BAM_FILE" ] && input_count=$((input_count + 1))
+[ -n "$VCF_FILE" ] && input_count=$((input_count + 1))
+[ -n "$UNMASKED_FQ" ] && input_count=$((input_count + 1))
+
+if [ $input_count -gt 1 ]; then
+    echo "Error: Conflicting arguments. You can only provide one of -b (BAM), -v (VCF) or -q (unmasked FQ)."
     print_usage
     exit 1
 fi
@@ -88,8 +97,9 @@ WORKDIR=$(pwd)
 if [ -n "$BAM_FILE" ]; then
     SAMPLE=$(basename "$BAM_FILE" | cut -d. -f1)
 elif [ -n "$VCF_FILE" ]; then
-    # Get sample name from VCF, assuming format like "sample.vcf.gz"
     SAMPLE=$(basename "$VCF_FILE" | cut -d. -f1)
+elif [ -n "$UNMASKED_FQ" ]; then
+    SAMPLE=$(basename "$UNMASKED_FQ" | cut -d. -f1)
 fi
 
 ALL_CHR_DIR="${WORKDIR}/all_Chr/${SAMPLE}"
@@ -113,28 +123,41 @@ if [ -n "$BAM_FILE" ]; then
     bcftools cat $(ls ${ALL_CHR_DIR}/split/bcf/tmp.*.bcf | sort -V) | bcftools view - | gzip > "${ALL_CHR_DIR}/${SAMPLE}.vcf.gz"
     rm -r "${ALL_CHR_DIR}/split" # Remove split dir after use
 
+    echo "$(date) | Consensus file | -d:${MIN_DEPTH} -D:${MAX_DEPTH}"
+    # -D and -d parameters from whole genome stats file
+    MIN_DEPTH=$(awk 'NR==2{printf "%.0f", $2/3}' "${STATS_FILE}")
+    MAX_DEPTH=$(awk 'NR==2{printf "%.0f", $2*2.5}' "${STATS_FILE}")
+    zcat "${ALL_CHR_DIR}/${SAMPLE}.vcf.gz" | vcfutils.pl vcf2fq -d "${MIN_DEPTH}" -D "${MAX_DEPTH}" | gzip > "${ALL_CHR_DIR}/${SAMPLE}.fq.gz"
+
 elif [ -n "$VCF_FILE" ]; then
     echo "$(date) | ${SAMPLE} | Using provided VCF file: ${VCF_FILE}"
 
     ln -s "$(realpath ${VCF_FILE})" "${ALL_CHR_DIR}/${SAMPLE}.vcf.gz"
 
     echo "$(date) | ${SAMPLE} | Created symlink: $(realpath ${VCF_FILE}) -> ${ALL_CHR_DIR}/${SAMPLE}.vcf.gz"
+
+    echo "$(date) | Consensus file | -d:${MIN_DEPTH} -D:${MAX_DEPTH}"
+    # -D and -d parameters from whole genome stats file
+    MIN_DEPTH=$(awk 'NR==2{printf "%.0f", $2/3}' "${STATS_FILE}")
+    MAX_DEPTH=$(awk 'NR==2{printf "%.0f", $2*2.5}' "${STATS_FILE}")
+    zcat "${ALL_CHR_DIR}/${SAMPLE}.vcf.gz" | vcfutils.pl vcf2fq -d "${MIN_DEPTH}" -D "${MAX_DEPTH}" | gzip > "${ALL_CHR_DIR}/${SAMPLE}.fq.gz"
+
+elif [ -n "$UNMASKED_FQ" ]; then
+    echo "$(date) | ${SAMPLE} | Using provided unmasked FQ file: ${UNMASKED_FQ}"
+
+    # Create symlink to the provided unmasked FQ file
+    ln -s "$(realpath ${UNMASKED_FQ})" "${ALL_CHR_DIR}/${SAMPLE}.fq.gz"
+
+    echo "$(date) | ${SAMPLE} | Created symlink: $(realpath ${UNMASKED_FQ}) -> ${ALL_CHR_DIR}/${SAMPLE}.fq.gz"
 fi
 
-
-echo "$(date) | ${SAMPLE} | VCF masking"
-bedtools intersect -header -v -a "${ALL_CHR_DIR}/${SAMPLE}.vcf.gz" -b ${MASK_FILE} | bgzip -c >"${ALL_CHR_DIR}/${SAMPLE}.masked.vcf.gz"
-
-# -D and -d parameters from whole genome stats file
-MIN_DEPTH=$(awk 'NR==2{printf "%.0f", $2/3}' "${STATS_FILE}")
-MAX_DEPTH=$(awk 'NR==2{printf "%.0f", $2*2.5}' "${STATS_FILE}")
-echo "$(date) | Consensus file | -d:${MIN_DEPTH} -D:${MAX_DEPTH}"
-zcat "${ALL_CHR_DIR}/${SAMPLE}.masked.vcf.gz" | vcfutils.pl vcf2fq -d "${MIN_DEPTH}" -D "${MAX_DEPTH}" | gzip > "${ALL_CHR_DIR}/${SAMPLE}.fq.gz"
-rm "${ALL_CHR_DIR}/${SAMPLE}.masked.vcf.gz"
+# Masking
+echo "$(date) | ${SAMPLE} | Consensus masking"
+mask_consensus.py -i "${ALL_CHR_DIR}/${SAMPLE}.fq.gz" -m "${MASK_FILE}" -o "${ALL_CHR_DIR}/${SAMPLE}.masked.fq.gz"
 
 # PSMC (all chromosomes)
 echo "$(date) | ${SAMPLE} | Fasta-like consensus file preparation";
-fq2psmcfa -q20 "${ALL_CHR_DIR}/${SAMPLE}.fq.gz" > "${ALL_CHR_DIR}/${SAMPLE}.diploid.psmcfa"
+fq2psmcfa -q20 "${ALL_CHR_DIR}/${SAMPLE}.masked.fq.gz" > "${ALL_CHR_DIR}/${SAMPLE}.diploid.psmcfa"
 
 echo "$(date) | ${SAMPLE} | Fasta-like consensus file preparation for bootstrapping";
 splitfa "${ALL_CHR_DIR}/${SAMPLE}.diploid.psmcfa" > "${ALL_CHR_DIR}/${SAMPLE}.diploid.split.psmcfa"
@@ -164,7 +187,7 @@ fi
 
 # PSMC excluding ChrX
 echo "$(date) | ${SAMPLE} | Removing ${CHRX_ID}"
-zcat "${ALL_CHR_DIR}/${SAMPLE}.fq.gz" | \
+zcat "${ALL_CHR_DIR}/${SAMPLE}.masked.fq.gz" | \
     awk -v ID_TO_REMOVE="${CHRX_ID}" 'BEGIN {RS="@"; ORS="@"} /^$/ {ORS=""; next} { if ($0 !~ "^" ID_TO_REMOVE "[ \t\n]") { print $0 }}' | gzip > "${NO_CHRX_DIR}/${SAMPLE}.no_ChrX.fq.gz"
 
 echo "$(date) | ${SAMPLE} | Fasta-like consensus file preparation";
