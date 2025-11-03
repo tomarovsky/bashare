@@ -27,12 +27,12 @@ print_usage() {
     echo " -v    Full path to the input SAMPLE.vcf.gz file (required if -b or -q are not used)"
     echo " -q    Full path to the unmasked consensus .fq.gz file (required if -b or -v are not used)"
     echo " -w    Full path to the sample's whole genome stats file (e.g., _whole_genome_stats.csv)"
-    echo " -m    Full path to the BED mask file"
     echo " -g    Generation time"
     echo " -u    Mutation rate"
     echo " -c    ChrX scaffold name"
     echo ""
     echo "Optional:"
+    echo " -m    Full path to the BED mask file (optional, if not provided no masking will be performed)"
     echo " -j    Number of threads for parallel processes (Default: ${THREADS})"
     echo " -N    PSMC parameter N (Max number of iterations) (Default: ${N_PSMC})"
     echo " -t    PSMC parameter t (Max number of hidden states) (Default: ${T_PSMC})"
@@ -40,21 +40,21 @@ print_usage() {
     echo " -p    PSMC time segment pattern (e.g., '4+25*2+4+6') (Default: \"${PATTERN}\")"
     echo " -z    (Optional) Run 100 bootstrap analysis. Default: ${ROUNDS}"
     echo ""
-    echo "Usage: $0 -f assembly.fasta [-b sample.bam | -v sample.vcf.gz | -q sample.unmasked.fq.gz] -w whole_genome_stats.csv -m mask.bed -g 5 -u 4.64e-9 -c scaff_19"
+    echo "Usage: $0 -f assembly.fasta [-b sample.bam | -v sample.vcf.gz | -q sample.unmasked.fq.gz] -w whole_genome_stats.csv -g 5 -u 4.64e-9 -c scaff_19 [-m mask.bed]"
 }
 
 # --- Process command-line options ---
-while getopts 'f:b:v:q:w:m:g:u:c:j:n:t:r:p:z' flag; do
+while getopts 'f:b:v:q:w:g:u:c:m:j:n:t:r:p:z' flag; do
     case "${flag}" in
         f) ASSEMBLY="${OPTARG}" ;;
         b) BAM_FILE="${OPTARG}" ;;
         v) VCF_FILE="${OPTARG}" ;;
         q) UNMASKED_FQ="${OPTARG}" ;;
         w) STATS_FILE="${OPTARG}" ;;
-        m) MASK_FILE="${OPTARG}" ;;
         g) GEN_TIME="${OPTARG}" ;;
         u) MU_RATE="${OPTARG}" ;;
         c) CHRX_ID="${OPTARG}" ;;
+        m) MASK_FILE="${OPTARG}" ;;
         j) THREADS="${OPTARG}" ;;
         n) N_PSMC="${OPTARG}" ;;
         t) T_PSMC="${OPTARG}" ;;
@@ -85,8 +85,8 @@ if [ $input_count -gt 1 ]; then
     exit 1
 fi
 
-if [ -z "$ASSEMBLY" ] || [ -z "$STATS_FILE" ] || [ -z "$MASK_FILE" ] || [ -z "$GEN_TIME" ] || [ -z "$MU_RATE" ] || [ -z "$CHRX_ID" ]; then
-    echo "Error: Missing one or more required arguments (-f, -w, -m, -g, -u, -c)."
+if [ -z "$ASSEMBLY" ] || [ -z "$STATS_FILE" ] || [ -z "$GEN_TIME" ] || [ -z "$MU_RATE" ] || [ -z "$CHRX_ID" ]; then
+    echo "Error: Missing one or more required arguments (-f, -w, -g, -u, -c)."
     print_usage
     exit 1
 fi
@@ -111,6 +111,7 @@ mkdir -p "${NO_CHRX_DIR}"
 
 echo "$(date) | Working directory: ${WORKDIR}"
 echo "$(date) | Sample: ${SAMPLE}"
+echo "$(date) | Mask file: ${MASK_FILE:-Not provided, skipping masking}"
 
 if [ -n "$BAM_FILE" ]; then
     # Variant Calling and VCF/FQ creation (all chromosomes)
@@ -126,8 +127,8 @@ if [ -n "$BAM_FILE" ]; then
 
     echo "$(date) | Consensus file | -d:${MIN_DEPTH} -D:${MAX_DEPTH}"
     # -D and -d parameters from whole genome stats file
-    MIN_DEPTH=$(awk 'NR==2{printf "%.0f", $2/3}' "${STATS_FILE}")
-    MAX_DEPTH=$(awk 'NR==2{printf "%.0f", $2*2.5}' "${STATS_FILE}")
+    MIN_DEPTH=$(awk 'NR==2{printf "%.0f", $2/3}' "${STATS_FILE}")   # Minimum (33% of median)
+    MAX_DEPTH=$(awk 'NR==2{printf "%.0f", $2*2.5}' "${STATS_FILE}") # Maximum (250% of median)
     zcat "${ALL_CHR_DIR}/${SAMPLE}.vcf.gz" | vcfutils.pl vcf2fq -d "${MIN_DEPTH}" -D "${MAX_DEPTH}" | gzip > "${ALL_CHR_DIR}/${SAMPLE}.fq.gz"
 
 elif [ -n "$VCF_FILE" ]; then
@@ -152,13 +153,20 @@ elif [ -n "$UNMASKED_FQ" ]; then
     echo "$(date) | ${SAMPLE} | Created symlink: $(realpath ${UNMASKED_FQ}) -> ${ALL_CHR_DIR}/${SAMPLE}.fq.gz"
 fi
 
-# Masking
-echo "$(date) | ${SAMPLE} | Consensus masking"
-mask_consensus.py -i "${ALL_CHR_DIR}/${SAMPLE}.fq.gz" -m "${MASK_FILE}" -o "${ALL_CHR_DIR}/${SAMPLE}.masked.fq.gz"
+# Masking (optional)
+if [ -n "$MASK_FILE" ]; then
+    echo "$(date) | ${SAMPLE} | Consensus masking"
+    mask_consensus.py -i "${ALL_CHR_DIR}/${SAMPLE}.fq.gz" -m "${MASK_FILE}" -o "${ALL_CHR_DIR}/${SAMPLE}.masked.fq.gz"
+    FQ_FOR_PSMC="${ALL_CHR_DIR}/${SAMPLE}.masked.fq.gz"
+    echo "$(date) | ${SAMPLE} | Masked FQ file prepared: ${FQ_FOR_PSMC}"
+else
+    FQ_FOR_PSMC="${ALL_CHR_DIR}/${SAMPLE}.fq.gz"
+    echo "$(date) | ${SAMPLE} | No mask file provided, using unmasked consensus: ${FQ_FOR_PSMC}"
+fi
 
 # PSMC (all chromosomes)
 echo "$(date) | ${SAMPLE} | Fasta-like consensus file preparation";
-fq2psmcfa -q20 "${ALL_CHR_DIR}/${SAMPLE}.masked.fq.gz" > "${ALL_CHR_DIR}/${SAMPLE}.diploid.psmcfa"
+fq2psmcfa -q20 "${FQ_FOR_PSMC}" > "${ALL_CHR_DIR}/${SAMPLE}.diploid.psmcfa"
 
 echo "$(date) | ${SAMPLE} | Fasta-like consensus file preparation for bootstrapping";
 splitfa "${ALL_CHR_DIR}/${SAMPLE}.diploid.psmcfa" > "${ALL_CHR_DIR}/${SAMPLE}.diploid.split.psmcfa"
@@ -188,7 +196,15 @@ fi
 
 # PSMC excluding ChrX
 echo "$(date) | ${SAMPLE} | Removing ${CHRX_ID}"
-zcat "${ALL_CHR_DIR}/${SAMPLE}.masked.fq.gz" | \
+if [ -n "$MASK_FILE" ]; then
+    # Use masked file if masking was performed
+    INPUT_FQ="${ALL_CHR_DIR}/${SAMPLE}.masked.fq.gz"
+else
+    # Use unmasked file if no masking
+    INPUT_FQ="${ALL_CHR_DIR}/${SAMPLE}.fq.gz"
+fi
+
+zcat "${INPUT_FQ}" | \
     awk -v ID_TO_REMOVE="${CHRX_ID}" 'BEGIN {RS="@"} /^$/ {next} { if ($0 !~ "^" ID_TO_REMOVE "[ \t\n]") { print "@" $0 }}' | gzip > "${NO_CHRX_DIR}/${SAMPLE}.no_ChrX.fq.gz"
 
 echo "$(date) | ${SAMPLE} | Fasta-like consensus file preparation";
@@ -220,4 +236,4 @@ if $ROUNDS; then
     rm ${NO_CHRX_DIR}/round.*.txt
 fi
 
-echo "$(date) | DONE | ${SAMPLE} | Gen=${GEN_TIME} | Mu=${MU_RATE} | Rounds=${ROUNDS}"
+echo "$(date) | DONE | ${SAMPLE} | Gen=${GEN_TIME} | Mu=${MU_RATE} | Masking=${MASK_FILE:+Yes}${MASK_FILE:-No} | Rounds=${ROUNDS}"
