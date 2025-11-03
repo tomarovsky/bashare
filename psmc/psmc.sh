@@ -109,6 +109,7 @@ NO_CHRX_DIR="${WORKDIR}/no_ChrX/${SAMPLE}"
 mkdir -p "${ALL_CHR_DIR}"
 mkdir -p "${NO_CHRX_DIR}"
 
+echo "$(date) | Working directory: ${WORKDIR}"
 echo "$(date) | Sample: ${SAMPLE}"
 
 if [ -n "$BAM_FILE" ]; then
