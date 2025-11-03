@@ -125,10 +125,10 @@ if [ -n "$BAM_FILE" ]; then
     bcftools cat $(ls ${ALL_CHR_DIR}/split/bcf/tmp.*.bcf | sort -V) | bcftools view - | gzip > "${ALL_CHR_DIR}/${SAMPLE}.vcf.gz"
     rm -r "${ALL_CHR_DIR}/split" # Remove split dir after use
 
-    echo "$(date) | Consensus file | -d:${MIN_DEPTH} -D:${MAX_DEPTH}"
     # -D and -d parameters from whole genome stats file
     MIN_DEPTH=$(awk 'NR==2{printf "%.0f", $2/3}' "${STATS_FILE}")   # Minimum (33% of median)
     MAX_DEPTH=$(awk 'NR==2{printf "%.0f", $2*2.5}' "${STATS_FILE}") # Maximum (250% of median)
+    echo "$(date) | Consensus file | -d:${MIN_DEPTH} -D:${MAX_DEPTH}"
     zcat "${ALL_CHR_DIR}/${SAMPLE}.vcf.gz" | vcfutils.pl vcf2fq -d "${MIN_DEPTH}" -D "${MAX_DEPTH}" | gzip > "${ALL_CHR_DIR}/${SAMPLE}.fq.gz"
 
 elif [ -n "$VCF_FILE" ]; then
@@ -138,10 +138,10 @@ elif [ -n "$VCF_FILE" ]; then
 
     echo "$(date) | ${SAMPLE} | Created symlink: $(realpath ${VCF_FILE}) -> ${ALL_CHR_DIR}/${SAMPLE}.vcf.gz"
 
-    echo "$(date) | Consensus file | -d:${MIN_DEPTH} -D:${MAX_DEPTH}"
     # -D and -d parameters from whole genome stats file
     MIN_DEPTH=$(awk 'NR==2{printf "%.0f", $2/3}' "${STATS_FILE}")   # Minimum (33% of median)
     MAX_DEPTH=$(awk 'NR==2{printf "%.0f", $2*2.5}' "${STATS_FILE}") # Maximum (250% of median)
+    echo "$(date) | Consensus file | -d:${MIN_DEPTH} -D:${MAX_DEPTH}"
     zcat "${ALL_CHR_DIR}/${SAMPLE}.vcf.gz" | vcfutils.pl vcf2fq -d "${MIN_DEPTH}" -D "${MAX_DEPTH}" | gzip > "${ALL_CHR_DIR}/${SAMPLE}.fq.gz"
 
 elif [ -n "$UNMASKED_FQ" ]; then
