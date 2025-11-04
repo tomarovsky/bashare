@@ -207,9 +207,11 @@ echo "$(date) | ${SAMPLE} | Removing ${CHRX_ID}"
 if [ -n "$MASK_FILE" ]; then
     # Use masked file if masking was performed
     INPUT_FQ="${ALL_CHR_DIR}/${SAMPLE}.masked.fq.gz"
+    echo "$(date) | Use masked FQ: ${INPUT_FQ}"
 else
     # Use unmasked file if no masking
     INPUT_FQ="${ALL_CHR_DIR}/${SAMPLE}.fq.gz"
+    echo "$(date) | Use UNmasked FQ: ${INPUT_FQ}"
 fi
 
 zcat "${INPUT_FQ}" | \
