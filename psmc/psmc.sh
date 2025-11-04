@@ -213,7 +213,7 @@ else
 fi
 
 zcat "${INPUT_FQ}" | \
-    awk -v ID_TO_REMOVE="${CHRX_ID}" 'BEGIN {RS="@"} /^$/ {next} { if ($0 !~ "^" ID_TO_REMOVE "[ \t\n]") { print "@" $0 }}' | gzip > "${NO_CHRX_DIR}/${SAMPLE}.no_ChrX.fq.gz"
+    awk -v ID_TO_REMOVE="${CHRX_ID}" 'BEGIN{skip=0} /^@/ {skip=($0=="@"ID_TO_REMOVE)?1:0} skip==0{print}' | gzip > "${NO_CHRX_DIR}/${SAMPLE}.no_ChrX.fq.gz"
 
 echo "$(date) | ${SAMPLE} | Fasta-like consensus file preparation";
 fq2psmcfa -q20 "${NO_CHRX_DIR}/${SAMPLE}.no_ChrX.fq.gz" > "${NO_CHRX_DIR}/${SAMPLE}.no_ChrX.diploid.psmcfa"
