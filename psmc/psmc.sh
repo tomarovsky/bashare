@@ -19,6 +19,7 @@ T_PSMC=15
 R_PSMC=5
 PATTERN="4+25*2+4+6"
 ROUNDS=false
+STOP_AFTER_VCF=false
 
 print_usage() {
     echo "Required options:"
@@ -39,12 +40,13 @@ print_usage() {
     echo " -r    PSMC parameter r (Recombination rate parameter) (Default: ${R_PSMC})"
     echo " -p    PSMC time segment pattern (e.g., '4+25*2+4+6') (Default: \"${PATTERN}\")"
     echo " -z    (Optional) Run 100 bootstrap analysis. Default: ${ROUNDS}"
+    echo " -x    (Optional) Stop after generating VCF file. Default: ${STOP_AFTER_VCF}"
     echo ""
-    echo "Usage: $0 -f assembly.fasta [-b sample.bam | -v sample.vcf.gz | -q sample.unmasked.fq.gz] -w whole_genome_stats.csv -g 5 -u 4.64e-9 -c scaff_19 [-m mask.bed]"
+    echo "Usage: $0 -f assembly.fasta [-b sample.bam | -v sample.vcf.gz | -q sample.unmasked.fq.gz] -w whole_genome_stats.csv -g 5 -u 4.64e-9 -c scaff_19 [-m mask.bed] [-x]"
 }
 
 # --- Process command-line options ---
-while getopts 'f:b:v:q:w:g:u:c:m:j:n:t:r:p:z' flag; do
+while getopts 'f:b:v:q:w:g:u:c:m:j:n:t:r:p:zx' flag; do
     case "${flag}" in
         f) ASSEMBLY="${OPTARG}" ;;
         b) BAM_FILE="${OPTARG}" ;;
@@ -61,6 +63,7 @@ while getopts 'f:b:v:q:w:g:u:c:m:j:n:t:r:p:z' flag; do
         r) R_PSMC="${OPTARG}" ;;
         p) PATTERN="${OPTARG}" ;;
         z) ROUNDS=true ;;
+        x) STOP_AFTER_VCF=true ;;
         *) print_usage
            exit 1 ;;
     esac
@@ -102,10 +105,10 @@ elif [ -n "$UNMASKED_FQ" ]; then
     SAMPLE=$(basename "$UNMASKED_FQ" | cut -d. -f1)
 fi
 
+# --- Setup directories ---
 ALL_CHR_DIR="${WORKDIR}/all_Chr/${SAMPLE}"
 NO_CHRX_DIR="${WORKDIR}/no_ChrX/${SAMPLE}"
 
-# --- Setup directories ---
 mkdir -p "${ALL_CHR_DIR}"
 mkdir -p "${NO_CHRX_DIR}"
 
@@ -124,6 +127,12 @@ if [ -n "$BAM_FILE" ]; then
     echo "$(date) | ${SAMPLE} | BCF -> VCF"
     bcftools cat $(ls ${ALL_CHR_DIR}/split/bcf/tmp.*.bcf | sort -V) | bcftools view - | gzip > "${ALL_CHR_DIR}/${SAMPLE}.vcf.gz"
     rm -r "${ALL_CHR_DIR}/split" # Remove split dir after use
+
+    if $STOP_AFTER_VCF; then
+        echo "$(date) | ${SAMPLE} | VCF file created: ${ALL_CHR_DIR}/${SAMPLE}.vcf.gz"
+        echo "$(date) | STOPPING as requested by -x flag"
+        exit 0
+    fi
 
     # -D and -d parameters from whole genome stats file
     MIN_DEPTH=$(awk 'NR==2{printf "%.0f", $2/3}' "${STATS_FILE}")   # Minimum (33% of median)
@@ -168,9 +177,6 @@ fi
 echo "$(date) | ${SAMPLE} | Fasta-like consensus file preparation";
 fq2psmcfa -q20 "${FQ_FOR_PSMC}" > "${ALL_CHR_DIR}/${SAMPLE}.diploid.psmcfa"
 
-echo "$(date) | ${SAMPLE} | Fasta-like consensus file preparation for bootstrapping";
-splitfa "${ALL_CHR_DIR}/${SAMPLE}.diploid.psmcfa" > "${ALL_CHR_DIR}/${SAMPLE}.diploid.split.psmcfa"
-
 echo "$(date) | ${SAMPLE} | PSMC calculation";
 psmc -N"${N_PSMC}" -t"${T_PSMC}" -r"${R_PSMC}" -p "${PATTERN}" -o "${ALL_CHR_DIR}/${SAMPLE}.diploid.psmc" "${ALL_CHR_DIR}/${SAMPLE}.diploid.psmcfa"
 
@@ -181,6 +187,8 @@ rm ${ALL_CHR_DIR}/${SAMPLE}.G${GEN_TIME}_U${MU_RATE}.diploid.{eps,gp,par}
 
 # Bootstrapping (optional)
 if $ROUNDS; then
+    echo "$(date) | ${SAMPLE} | Fasta-like consensus file preparation for bootstrapping";
+    splitfa "${ALL_CHR_DIR}/${SAMPLE}.diploid.psmcfa" > "${ALL_CHR_DIR}/${SAMPLE}.diploid.split.psmcfa"
     echo "$(date) | ${SAMPLE} | PSMC 100 bootstrapping"
     seq 100 | xargs -I{} echo "psmc -N${N_PSMC} -t${T_PSMC} -r${R_PSMC} -b -p \"${PATTERN}\" -o ${ALL_CHR_DIR}/round-{}.psmc ${ALL_CHR_DIR}/${SAMPLE}.diploid.split.psmcfa" > "${ALL_CHR_DIR}/seq100.txt"
     parallel -j "${THREADS}" < "${ALL_CHR_DIR}/seq100.txt"
@@ -210,9 +218,6 @@ zcat "${INPUT_FQ}" | \
 echo "$(date) | ${SAMPLE} | Fasta-like consensus file preparation";
 fq2psmcfa -q20 "${NO_CHRX_DIR}/${SAMPLE}.no_ChrX.fq.gz" > "${NO_CHRX_DIR}/${SAMPLE}.no_ChrX.diploid.psmcfa"
 
-echo "$(date) | ${SAMPLE} | Fasta-like consensus file preparation for bootstrapping";
-splitfa "${NO_CHRX_DIR}/${SAMPLE}.no_ChrX.diploid.psmcfa" > "${NO_CHRX_DIR}/${SAMPLE}.no_ChrX.diploid.split.psmcfa"
-
 echo "$(date) | ${SAMPLE} | PSMC calculation";
 psmc -N"${N_PSMC}" -t"${T_PSMC}" -r"${R_PSMC}" -p "${PATTERN}" -o "${NO_CHRX_DIR}/${SAMPLE}.no_ChrX.diploid.psmc" "${NO_CHRX_DIR}/${SAMPLE}.no_ChrX.diploid.psmcfa"
 
@@ -223,6 +228,8 @@ rm ${NO_CHRX_DIR}/${SAMPLE}.G${GEN_TIME}_U${MU_RATE}.no_ChrX.diploid.{eps,gp,par
 
 # Bootstrapping (optional)
 if $ROUNDS; then
+    echo "$(date) | ${SAMPLE} | Fasta-like consensus file preparation for bootstrapping";
+    splitfa "${NO_CHRX_DIR}/${SAMPLE}.no_ChrX.diploid.psmcfa" > "${NO_CHRX_DIR}/${SAMPLE}.no_ChrX.diploid.split.psmcfa"
     echo "$(date) | ${SAMPLE} | PSMC 100 bootstrapping"
     seq 100 | xargs -I{} echo "psmc -N${N_PSMC} -t${T_PSMC} -r${R_PSMC} -b -p '${PATTERN}' -o ${NO_CHRX_DIR}/round-{}.psmc ${NO_CHRX_DIR}/${SAMPLE}.no_ChrX.diploid.split.psmcfa" > "${NO_CHRX_DIR}/seq100.txt"
     parallel -j "${THREADS}" < "${NO_CHRX_DIR}/seq100.txt"
