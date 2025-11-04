@@ -214,8 +214,7 @@ else
     echo "$(date) | Use UNmasked FQ: ${INPUT_FQ}"
 fi
 
-zcat "${INPUT_FQ}" | \
-    awk -v ID_TO_REMOVE="${CHRX_ID}" 'BEGIN{skip=0} /^@/ {skip=($0=="@"ID_TO_REMOVE)?1:0} skip==0{print}' | gzip > "${NO_CHRX_DIR}/${SAMPLE}.no_ChrX.fq.gz"
+consensus_remove_scaffold.py -i "${INPUT_FQ}" -o "${NO_CHRX_DIR}/${SAMPLE}.no_ChrX.fq.gz" -s "${CHRX_ID}"
 
 echo "$(date) | ${SAMPLE} | Fasta-like consensus file preparation";
 fq2psmcfa -q20 "${NO_CHRX_DIR}/${SAMPLE}.no_ChrX.fq.gz" > "${NO_CHRX_DIR}/${SAMPLE}.no_ChrX.diploid.psmcfa"
