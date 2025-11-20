@@ -30,6 +30,3 @@ $TOOLS/MACE/scripts/draw_coverage.py \
     --window_column_name 'frame' \
     --hide_track_label \
     --rounded;
-
-    # --subplots_adjust_left 0.12 \
-    # --figure_width 12 \
