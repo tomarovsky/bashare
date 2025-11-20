@@ -23,6 +23,10 @@ OUTPREFIX=$5
 IFS=',' read -r -a BAM_ARRAY <<< "$BAM_LIST_RAW"
 IFS=',' read -r -a MALES_ARRAY <<< "$MALES_LIST_RAW"
 
+if [[ ! -f "${REF%.*}.dict" ]]; then
+    picard CreateSequenceDictionary -R "$REF"
+fi
+
 # output directories
 mkdir -p gatk_tmp/intervals
 mkdir -p gatk_tmp/chunks
