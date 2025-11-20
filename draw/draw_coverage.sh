@@ -14,7 +14,7 @@ fi
 source $(conda info --base)/etc/profile.d/conda.sh
 conda activate py38
 
-$TOOLS/latest_mahajrod/scripts/draw_coverage.py \
+$TOOLS/MACE/scripts/draw_coverage.py \
     -i ${WINDOWS_STATS_CSV} \
     -o ${WINDOWS_STATS_CSV%.*}.track \
     -l ${WINDOWS_STATS_CSV%.*} \
@@ -29,5 +29,3 @@ $TOOLS/latest_mahajrod/scripts/draw_coverage.py \
     --figure_width 12 \
     --hide_track_label \
     --rounded;
-
-
