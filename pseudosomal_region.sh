@@ -34,7 +34,7 @@ mkdir -p "$PAR_DIR"
 # 2. Extract Scaffold
 CHR_BED="${PAR_DIR}/${PREFIX}.${SCAFFOLD_NAME}.bed.gz"
 echo "[2/4] Extracting scaffold ${SCAFFOLD_NAME} to ${CHR_BED}..."
-zgrep -w "^${SCAFFOLD_NAME}$" "${MOSDEPTH_BEDGZ}" | gzip > "${CHR_BED}"
+zgrep -w "^${SCAFFOLD_NAME}" "${MOSDEPTH_BEDGZ}" | gzip > "${CHR_BED}"
 
 # 3. Window Stats
 echo "[3/4] Computing window stats..."
