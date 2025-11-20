@@ -37,7 +37,6 @@ echo "[1/4] SplitIntervals"
 if [ -z "$(ls -A gatk_tmp/intervals)" ]; then
     gatk --java-options "-Xmx8g" SplitIntervals \
         -R "$REF" \
-        -L "$REF" \
         --scatter-count "$SCATTER_COUNT" \
         -O gatk_tmp/intervals
 else
