@@ -47,12 +47,12 @@ tail -n +2 "$STATS_CSV" > "${STATS_CSV}.tmp" && mv "${STATS_CSV}.tmp" "$STATS_CS
 
 # 4. PAR Detection
 echo "[4/4] Running PAR identification..."
-MEAN_COV=$(awk 'NR==2 {print $2}' "${WG_STATS}")
+MEDIAN_COV=$(awk 'NR==2 {print $2}' "${WG_STATS}")
 "$TOOLS/Biocrutch/scripts/PAR/pseudoautosomal_region.py" \
     -f "$WINDOW_SIZE" \
     -i "$STATS_CSV" \
     -s "$SCAFFOLD_NAME" \
-    -m "$MEAN_COV" \
+    -m "$MEDIAN_COV" \
     -o "$CHR_PREFIX" \
     | tee "${CHR_PREFIX}_pseudo.log"
 
