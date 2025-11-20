@@ -5,6 +5,9 @@ set -euo pipefail
 SCATTER_COUNT=64
 JAVA_MEM="4g"
 
+# GATK
+export PATH=$(conda info --base)/envs/gatk/bin/:${TOOLS}/gatk-4.6.2.0/:${PATH}
+
 if [ "$#" -ne 5 ]; then
     echo "Usage: $0 genome.fasta <comma-separated BAM files> <comma-separated male IDs> haploid.bed outprefix"
     exit 1
