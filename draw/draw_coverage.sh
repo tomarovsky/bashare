@@ -18,7 +18,7 @@ $TOOLS/MACE/scripts/draw_coverage.py \
     -i ${WINDOWS_STATS_CSV} \
     -o ${WINDOWS_STATS_CSV%.*}.track \
     -l ${WINDOWS_STATS_CSV%.*} \
-    --window_size 1000000
+    --window_size 1000000 \
     -m $(cat ${WINDOWS_STATS_CSV%_*_*_*}_whole_genome_stats.csv | sed -n 2p | awk '{print $2}') \
     --title $(basename ${WINDOWS_STATS_CSV%_*_*}) \
     --scaffold_length_file ${ASSEMBLY_PREFIX_PATH}.len \
@@ -28,7 +28,8 @@ $TOOLS/MACE/scripts/draw_coverage.py \
     --scaffold_column_name '#scaffold' \
     --coverage_column_name 'median' \
     --window_column_name 'frame' \
-    --subplots_adjust_left 0.12 \
-    --figure_width 12 \
     --hide_track_label \
     --rounded;
+
+    # --subplots_adjust_left 0.12 \
+    # --figure_width 12 \
