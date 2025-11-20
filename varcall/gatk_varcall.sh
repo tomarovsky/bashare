@@ -93,14 +93,14 @@ for BAM in "${BAM_ARRAY[@]}"; do
                     -R "$REF" -I "$BAM" -O "$P1" -ERC GVCF \
                     --sample-ploidy 1 \
                     -L "$INTERVAL" -L "$HAPLOID_BED" \
-                    > /dev/null 2>&1 || true
+                    |& tee -a "$LOG" || true
 
                 # 2. Ploidy 2 (interval WITHOUT haploid_bed)
                 gatk --java-options "-Xmx${JAVA_MEM}" HaplotypeCaller \
                     -R "$REF" -I "$BAM" -O "$P2" -ERC GVCF \
                     --sample-ploidy 2 \
                     -L "$INTERVAL" -XL "$HAPLOID_BED" \
-                    > /dev/null 2>&1 || true
+                    |& tee -a "$LOG" || true
 
                 # 3. Merge p1 and p2
                 # Check if files exist (GATK does not create a file if the region is empty)
@@ -119,7 +119,7 @@ for BAM in "${BAM_ARRAY[@]}"; do
                     -R "$REF" -I "$BAM" -O "$CHUNK_OUT" -ERC GVCF \
                     --sample-ploidy 2 \
                     -L "$INTERVAL" \
-                    > "$LOG" 2>&1
+                    |& tee -a "$LOG"
             fi
         ) &
     done
