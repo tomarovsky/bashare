@@ -197,16 +197,24 @@ for BAM in "${BAM_ARRAY[@]}"; do
     echo "[INFO] $NAME Done."
 done
 
-echo "[3/4] CombineGVCFs"
-COMBINED_GVCF="${OUTPREFIX}.g.vcf.gz"
-if [ ! -f "$COMBINED_GVCF" ] || [ ! -f "${COMBINED_GVCF}.tbi" ]; then
-    gatk --java-options "-Xmx64g" CombineGVCFs \
-        -R "$REF" \
+echo "[3/4] GenomicsDBImport"
+DB_WORKSPACE="gatk_tmp/genomics_db"
+# GenomicsDBImport do not work if outdir already exists
+if [ ! -d "$DB_WORKSPACE" ]; then
+    echo "[INFO] Creating new GenomicsDB..."
+    # use --genomicsdb-update-workspace-path "$DB_WORKSPACE" \ to update existing db
+    gatk --java-options "-Xmx64g" GenomicsDBImport \
         "${ALL_SAMPLE_GVCFS[@]}" \
-        -O "$COMBINED_GVCF"
-    echo "[INFO] CombineGVCFs completed."
+        --genomicsdb-workspace-path "$DB_WORKSPACE" \
+        --tmp-dir gatk_tmp \
+        -L gatk_tmp/intervals/*.interval_list \
+        --merge-input-intervals \
+        --reader-threads 5 \
+        --batch-size 50
+    echo "[INFO] GenomicsDBImport completed."
+
 else
-    echo "[INFO] Combined GVCF already exists, skipping."
+    echo "[INFO] GenomicsDB directory ($DB_WORKSPACE) already exists, skipping import."
 fi
 
 echo "[4/4] GenotypeGVCFs"
@@ -214,8 +222,13 @@ FINAL_VCF="${OUTPREFIX}.vcf.gz"
 if [ ! -f "$FINAL_VCF" ] || [ ! -f "${FINAL_VCF}.tbi" ]; then
     gatk --java-options "-Xmx64g" GenotypeGVCFs \
         -R "$REF" \
-        -V "$COMBINED_GVCF" \
-        -O "$FINAL_VCF"
+        -V gendb://"$DB_WORKSPACE" \
+        -O "$FINAL_VCF" \
+        -G StandardAnnotation \
+        --only-output-calls-starting-in-intervals \
+        --merge-input-intervals \
+        -L gatk_tmp/intervals/*.interval_list
+
     echo "[INFO] GenotypeGVCFs completed."
 else
     echo "[INFO] Final VCF already exists, skipping."
