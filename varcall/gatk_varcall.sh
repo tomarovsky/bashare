@@ -49,11 +49,12 @@ mkdir -p gatk_tmp/logs
 mkdir -p gatk_tmp/gvcfs
 
 echo "[1/4] SplitIntervals"
-if [ -z "$(ls -A gatk_tmp/intervals)" ]; then
+if [ -z "$(ls -A gatk_tmp/intervals 2>/dev/null)" ]; then
     gatk --java-options "-Xmx8g" SplitIntervals \
         -R "$REF" \
         --scatter-count "$SCATTER_COUNT" \
         -O gatk_tmp/intervals
+    echo "[INFO] Intervals created."
 else
     echo "[INFO] Intervals already exist, using them."
 fi
@@ -68,6 +69,13 @@ for BAM in "${BAM_ARRAY[@]}"; do
     NAME=$(basename "$BAM" | cut -d. -f1)
     FINAL_GVCF="gatk_tmp/gvcfs/${NAME}.g.vcf.gz"
 
+    # Skip if sample GVCF already exists
+    if [ -f "$FINAL_GVCF" ] && [ -f "${FINAL_GVCF}.tbi" ]; then
+        echo "[INFO] ${NAME}: GVCF already exists, skipping."
+        ALL_SAMPLE_GVCFS+=("-V $FINAL_GVCF")
+        continue
+    fi
+
     # Check sex
     IS_MALE=false
     for M in "${MALES_ARRAY[@]}"; do
@@ -81,6 +89,7 @@ for BAM in "${BAM_ARRAY[@]}"; do
     fi
 
     CHUNK_FILES_ARGS=""
+    CHUNKS_TO_PROCESS=0
     for i in "${!INTERVAL_FILES[@]}"; do
         INTERVAL="${INTERVAL_FILES[$i]}"
         ID=$(printf "%04d" $i) # 0001, 0002...
@@ -92,30 +101,40 @@ for BAM in "${BAM_ARRAY[@]}"; do
         # Collect arguments for future merging (-I file1 -I file2...)
         CHUNK_FILES_ARGS="${CHUNK_FILES_ARGS} -I $CHUNK_OUT"
 
-        (
-            # Skip if chunk is already ready
-            if [ -f "$CHUNK_OUT" ] && [ -f "${CHUNK_OUT}.tbi" ]; then
-                exit 0
-            fi
+        # Check if chunk already exists
+        if [ -f "$CHUNK_OUT" ] && [ -f "${CHUNK_OUT}.tbi" ]; then
+            echo "[INFO] ${NAME}.${ID}: Chunk already exists, skipping."
+            continue
+        fi
 
+        ((CHUNKS_TO_PROCESS++))
+        (
             if [ "$IS_MALE" = true ]; then
                 # === Logic for MALES ===
                 P1="gatk_tmp/chunks/${NAME}.${ID}.p1.g.vcf.gz"
                 P2="gatk_tmp/chunks/${NAME}.${ID}.p2.g.vcf.gz"
 
                 # 1. Ploidy 1 (intersection of interval with haploid_bed)
-                gatk --java-options "-Xmx${JAVA_MEM}" HaplotypeCaller \
-                    -R "$REF" -I "$BAM" -O "$P1" -ERC GVCF \
-                    --sample-ploidy 1 \
-                    -L "$INTERVAL" -L "$HAPLOID_BED" \
-                    |& tee -a "$LOG" || true
+                if [ ! -f "$P1" ] || [ ! -f "${P1}.tbi" ]; then
+                    gatk --java-options "-Xmx${JAVA_MEM}" HaplotypeCaller \
+                        -R "$REF" -I "$BAM" -O "$P1" -ERC GVCF \
+                        --sample-ploidy 1 \
+                        -L "$INTERVAL" -L "$HAPLOID_BED" \
+                        |& tee -a "$LOG" || true
+                else
+                    echo "[INFO] ${NAME}.${ID}.p1: Already exists, skipping."
+                fi
 
                 # 2. Ploidy 2 (interval WITHOUT haploid_bed)
-                gatk --java-options "-Xmx${JAVA_MEM}" HaplotypeCaller \
-                    -R "$REF" -I "$BAM" -O "$P2" -ERC GVCF \
-                    --sample-ploidy 2 \
-                    -L "$INTERVAL" -XL "$HAPLOID_BED" \
-                    |& tee -a "$LOG" || true
+                if [ ! -f "$P2" ] || [ ! -f "${P2}.tbi" ]; then
+                    gatk --java-options "-Xmx${JAVA_MEM}" HaplotypeCaller \
+                        -R "$REF" -I "$BAM" -O "$P2" -ERC GVCF \
+                        --sample-ploidy 2 \
+                        -L "$INTERVAL" -XL "$HAPLOID_BED" \
+                        |& tee -a "$LOG" || true
+                else
+                    echo "[INFO] ${NAME}.${ID}.p2: Already exists, skipping."
+                fi
 
                 # 3. Merge p1 and p2
                 # Check if files exist (GATK does not create a file if the region is empty)
@@ -123,47 +142,82 @@ for BAM in "${BAM_ARRAY[@]}"; do
                 if [ -f "$P1" ]; then MERGE_LIST="$MERGE_LIST -I $P1"; fi
                 if [ -f "$P2" ]; then MERGE_LIST="$MERGE_LIST -I $P2"; fi
 
-                gatk --java-options "-Xmx2g" MergeVcfs $MERGE_LIST -O "$CHUNK_OUT" > "$LOG" 2>&1
+                if [ -n "$MERGE_LIST" ] && ([ ! -f "$CHUNK_OUT" ] || [ ! -f "${CHUNK_OUT}.tbi" ]); then
+                    gatk --java-options "-Xmx2g" MergeVcfs $MERGE_LIST -O "$CHUNK_OUT" >> "$LOG" 2>&1
+                elif [ -f "$CHUNK_OUT" ] && [ -f "${CHUNK_OUT}.tbi" ]; then
+                    echo "[INFO] ${NAME}.${ID}: Merged chunk already exists, skipping merge."
+                fi
 
-                # Remove p1 and p2
-                rm -f "$P1"* "$P2"*
+                # Remove p1 and p2 (only if we created them and chunk merge was successful)
+                if [ -f "$CHUNK_OUT" ] && [ -f "${CHUNK_OUT}.tbi" ]; then
+                    rm -f "$P1"* "$P2"*
+                fi
 
             else
                 # === Logic for FEMALES ===
-                gatk --java-options "-Xmx${JAVA_MEM}" HaplotypeCaller \
-                    -R "$REF" -I "$BAM" -O "$CHUNK_OUT" -ERC GVCF \
-                    --sample-ploidy 2 \
-                    -L "$INTERVAL" \
-                    |& tee -a "$LOG"
+                if [ ! -f "$CHUNK_OUT" ] || [ ! -f "${CHUNK_OUT}.tbi" ]; then
+                    gatk --java-options "-Xmx${JAVA_MEM}" HaplotypeCaller \
+                        -R "$REF" -I "$BAM" -O "$CHUNK_OUT" -ERC GVCF \
+                        --sample-ploidy 2 \
+                        -L "$INTERVAL" \
+                        |& tee -a "$LOG"
+                else
+                    echo "[INFO] ${NAME}.${ID}: Chunk already exists, skipping."
+                fi
             fi
         ) &
     done
 
-    echo "[INFO] ${NAME}: waiting for all chunks ..."
-    wait
+    if [ $CHUNKS_TO_PROCESS -gt 0 ]; then
+        echo "[INFO] ${NAME}: waiting for $CHUNKS_TO_PROCESS chunks to process..."
+        wait
+        echo "[INFO] ${NAME}: all chunks processed."
+    else
+        echo "[INFO] ${NAME}: all chunks already exist."
+    fi
 
     echo "[INFO] ${NAME}: merging chunks ..."
-    gatk --java-options "-Xmx16g" MergeVcfs \
-        $CHUNK_FILES_ARGS \
-        -O "$FINAL_GVCF"
+    if [ ! -f "$FINAL_GVCF" ] || [ ! -f "${FINAL_GVCF}.tbi" ]; then
+        gatk --java-options "-Xmx16g" MergeVcfs \
+            $CHUNK_FILES_ARGS \
+            -O "$FINAL_GVCF"
+        echo "[INFO] ${NAME}: chunks merged into final GVCF."
+    else
+        echo "[INFO] ${NAME}: final GVCF already exists, skipping merge."
+    fi
 
-    # Remove chunk files
-    rm gatk_tmp/chunks/${NAME}.*.g.vcf.gz*
+    # Remove chunk files only if final GVCF was successfully created
+    if [ -f "$FINAL_GVCF" ] && [ -f "${FINAL_GVCF}.tbi" ]; then
+        rm -f gatk_tmp/chunks/${NAME}.*.g.vcf.gz*
+        echo "[INFO] ${NAME}: chunk files cleaned up."
+    fi
 
     ALL_SAMPLE_GVCFS+=("-V $FINAL_GVCF")
     echo "[INFO] $NAME Done."
 done
 
 echo "[3/4] CombineGVCFs"
-gatk --java-options "-Xmx64g" CombineGVCFs \
-    -R "$REF" \
-    "${ALL_SAMPLE_GVCFS[@]}" \
-    -O ${OUTPREFIX}.g.vcf.gz
+COMBINED_GVCF="${OUTPREFIX}.g.vcf.gz"
+if [ ! -f "$COMBINED_GVCF" ] || [ ! -f "${COMBINED_GVCF}.tbi" ]; then
+    gatk --java-options "-Xmx64g" CombineGVCFs \
+        -R "$REF" \
+        "${ALL_SAMPLE_GVCFS[@]}" \
+        -O "$COMBINED_GVCF"
+    echo "[INFO] CombineGVCFs completed."
+else
+    echo "[INFO] Combined GVCF already exists, skipping."
+fi
 
 echo "[4/4] GenotypeGVCFs"
-gatk --java-options "-Xmx64g" GenotypeGVCFs \
-    -R "$REF" \
-    -V ${OUTPREFIX}.g.vcf.gz \
-    -O ${OUTPREFIX}.vcf.gz
+FINAL_VCF="${OUTPREFIX}.vcf.gz"
+if [ ! -f "$FINAL_VCF" ] || [ ! -f "${FINAL_VCF}.tbi" ]; then
+    gatk --java-options "-Xmx64g" GenotypeGVCFs \
+        -R "$REF" \
+        -V "$COMBINED_GVCF" \
+        -O "$FINAL_VCF"
+    echo "[INFO] GenotypeGVCFs completed."
+else
+    echo "[INFO] Final VCF already exists, skipping."
+fi
 
-echo "[INFO] Done! Result: ${OUTPREFIX}.vcf.gz"
+echo "[INFO] Done! Result: $FINAL_VCF"
