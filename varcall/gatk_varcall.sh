@@ -97,34 +97,54 @@ for BAM in "${BAM_ARRAY[@]}"; do
                 P2="gatk_tmp/chunks/${NAME}.${ID}.p2.g.vcf.gz"
 
                 # 1. Ploidy 1
-                if [ ! -f "$P1" ] || [ ! -f "${P1}.tbi" ]; then
-                    gatk --java-options "-Xmx${JAVA_MEM}" HaplotypeCaller \
-                        -R "$REF" -I "$BAM" -O "$P1" -ERC GVCF \
-                        --sample-ploidy 1 \
-                        -L "$INTERVAL" -L "$HAPLOID_BED" \
-                        |& tee -a "$LOG"
+                HAS_HAPLOID=$(bedtools intersect -a "$INTERVAL" -b "$HAPLOID_BED" | head -n 1)
+
+                if [ -z "$HAS_HAPLOID" ]; then
+                    echo "[INFO] ${NAME}.${ID}: INTERVAL has no haploid part, skipping ploidy-1 call." | tee -a "$LOG"
+                else
+                    if [ ! -f "$P1" ] || [ ! -f "${P1}.tbi" ]; then
+                        gatk --java-options "-Xmx${JAVA_MEM}" HaplotypeCaller \
+                            -R "$REF" -I "$BAM" -O "$P1" -ERC GVCF \
+                            --sample-ploidy 1 \
+                            -L "$INTERVAL" -L "$HAPLOID_BED" \
+                            >> "$LOG" 2>&1
+                    fi
                 fi
 
                 # 2. Ploidy 2
-                if [ ! -f "$P2" ] || [ ! -f "${P2}.tbi" ]; then
-                    gatk --java-options "-Xmx${JAVA_MEM}" HaplotypeCaller \
-                        -R "$REF" -I "$BAM" -O "$P2" -ERC GVCF \
-                        --sample-ploidy 2 \
-                        -L "$INTERVAL" -XL "$HAPLOID_BED" \
-                        |& tee -a "$LOG"
+                # Check if INTERVAL is fully within HAPLOID_BED
+                HAS_DIPLOID=$(bedtools subtract -a "$INTERVAL" -b "$HAPLOID_BED" | head -n 1)
+
+                if [ -z "$HAS_DIPLOID" ]; then
+                    echo "[INFO] ${NAME}.${ID}: INTERVAL fully within HAPLOID, skipping diploid varcall." | tee -a "$LOG"
+                else
+                    if [ ! -f "$P2" ] || [ ! -f "${P2}.tbi" ]; then
+                        gatk --java-options "-Xmx${JAVA_MEM}" HaplotypeCaller \
+                            -R "$REF" -I "$BAM" -O "$P2" -ERC GVCF \
+                            --sample-ploidy 2 \
+                            -L "$INTERVAL" -XL "$HAPLOID_BED" \
+                            >> "$LOG" 2>&1
+                    fi
                 fi
 
-                # 3. Combine p1 and p2 using CombineGVCFs
-                COMBINE_LIST=""
-                if [ -f "$P1" ]; then COMBINE_LIST="$COMBINE_LIST -V $P1"; fi
-                if [ -f "$P2" ]; then COMBINE_LIST="$COMBINE_LIST -V $P2"; fi
-
-                if [ -n "$COMBINE_LIST" ] && ([ ! -f "$CHUNK_OUT" ] || [ ! -f "${CHUNK_OUT}.tbi" ]); then
-                    gatk --java-options "-Xmx4g" CombineGVCFs \
-                        -R "$REF" \
-                        $COMBINE_LIST \
-                        -O "$CHUNK_OUT" \
-                        |& tee -a "$LOG"
+                # 3. Combine p1 and p2
+                if [ ! -f "$CHUNK_OUT" ] || [ ! -f "${CHUNK_OUT}.tbi" ]; then
+                    if [ -f "$P1" ] && [ -f "$P2" ]; then
+                        gatk --java-options "-Xmx4g" CombineGVCFs \
+                            -R "$REF" \
+                            -V "$P1" -V "$P2" \
+                            -O "$CHUNK_OUT" \
+                            >> "$LOG" 2>&1
+                    elif [ -f "$P1" ]; then
+                        cp "$P1" "$CHUNK_OUT"
+                        cp "${P1}.tbi" "${CHUNK_OUT}.tbi"
+                    elif [ -f "$P2" ]; then
+                        cp "$P2" "$CHUNK_OUT"
+                        cp "${P2}.tbi" "${CHUNK_OUT}.tbi"
+                    else
+                        echo "[ERROR] No P1 or P2 produced for ${NAME}.${ID}" | tee -a "$LOG"
+                        exit 1
+                    fi
                 fi
 
                 # Cleanup
@@ -139,7 +159,7 @@ for BAM in "${BAM_ARRAY[@]}"; do
                         -R "$REF" -I "$BAM" -O "$CHUNK_OUT" -ERC GVCF \
                         --sample-ploidy 2 \
                         -L "$INTERVAL" \
-                        |& tee -a "$LOG"
+                        >> "$LOG" 2>&1
                 fi
             fi
         ) &
