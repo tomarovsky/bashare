@@ -72,7 +72,6 @@ for BAM in "${BAM_ARRAY[@]}"; do
     if [ "$IS_MALE" = true ]; then echo "[INFO] ${NAME}: MALE"; else echo "[INFO] ${NAME}: FEMALE"; fi
 
     CHUNK_FILES_ARGS=""
-    CHUNKS_TO_PROCESS=0
 
     for i in "${!INTERVAL_FILES[@]}"; do
         INTERVAL="${INTERVAL_FILES[$i]}"
@@ -91,7 +90,6 @@ for BAM in "${BAM_ARRAY[@]}"; do
             continue
         fi
 
-        ((CHUNKS_TO_PROCESS++))
         (
             if [ "$IS_MALE" = true ]; then
                 # === Logic for MALES ===
