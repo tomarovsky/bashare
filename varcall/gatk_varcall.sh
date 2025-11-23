@@ -197,6 +197,12 @@ for BAM in "${BAM_ARRAY[@]}"; do
     echo "[INFO] $NAME Done."
 done
 
+# All intervals (needed for GenomicsDBImport and GenotypeGVCFs)
+ALL_INTERVALS=()
+for INTERVAL_FILE in gatk_tmp/intervals/*.interval_list; do
+    ALL_INTERVALS+=("-L" "$INTERVAL_FILE")
+done
+
 echo "[3/4] GenomicsDBImport"
 DB_WORKSPACE="gatk_tmp/genomics_db"
 # GenomicsDBImport do not work if outdir already exists
@@ -205,11 +211,11 @@ if [ ! -d "$DB_WORKSPACE" ]; then
     # use --genomicsdb-update-workspace-path "$DB_WORKSPACE" \ to update existing db
     gatk --java-options "-Xmx64g" GenomicsDBImport \
         "${ALL_SAMPLE_GVCFS[@]}" \
+        "${ALL_INTERVALS[@]}" \
         --genomicsdb-workspace-path "$DB_WORKSPACE" \
         --tmp-dir gatk_tmp \
-        -L gatk_tmp/intervals/*.interval_list \
         --merge-input-intervals \
-        --reader-threads 6 \
+        --reader-threads 5 \
         --batch-size 50
     echo "[INFO] GenomicsDBImport completed."
 
@@ -225,9 +231,9 @@ if [ ! -f "$FINAL_VCF" ] || [ ! -f "${FINAL_VCF}.tbi" ]; then
         -V gendb://"$DB_WORKSPACE" \
         -O "$FINAL_VCF" \
         -G StandardAnnotation \
+        "${INTERVAL_ARGS[@]}" \
         --only-output-calls-starting-in-intervals \
-        --merge-input-intervals \
-        -L gatk_tmp/intervals/*.interval_list
+        --merge-input-intervals
 
     echo "[INFO] GenotypeGVCFs completed."
 else
