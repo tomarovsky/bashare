@@ -209,7 +209,7 @@ if [ ! -d "$DB_WORKSPACE" ]; then
         --tmp-dir gatk_tmp \
         -L gatk_tmp/intervals/*.interval_list \
         --merge-input-intervals \
-        --reader-threads 5 \
+        --reader-threads 6 \
         --batch-size 50
     echo "[INFO] GenomicsDBImport completed."
 
