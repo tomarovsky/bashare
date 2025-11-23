@@ -2,6 +2,7 @@
 
 set -euo pipefail
 
+# Usage
 usage() {
     echo "Usage: $0 PER_BASE_BED_FILE WHOLE_GENOME_STATS MALES HEMI_REGION_BED [OPTIONS]"
     echo ""
@@ -18,7 +19,7 @@ usage() {
     exit 1
 }
 
-# Required arguments
+# Parsing arguments
 PER_BASE_BED_FILE=""
 WHOLE_GENOME_STATS=""
 MALES=""
@@ -97,15 +98,14 @@ SAMPLE=$(basename "$PER_BASE_BED_FILE" | cut -d. -f1)
 source $(conda info --base)/etc/profile.d/conda.sh
 conda activate py38
 
-# Function to build command with correct parameters
-build_command() {
-    local coverage=$1
-    local input_file=$2
-    local output_file=$3
+# Build command for diploid regions
+build_diploid_command() {
+    local input_file=$1
+    local output_file=$2
 
     local cmd="$TOOLS/MAVR/scripts/alignment/coverage/generate_mask_from_coverage_bed.py"
     cmd+=" -c $input_file"
-    cmd+=" -m $coverage"
+    cmd+=" -m $COVERAGE"
 
     # Add threshold parameters
     if [[ -n "$MIN_RELATIVE" ]]; then
@@ -125,16 +125,16 @@ build_command() {
     echo "$cmd"
 }
 
-# Функция для построения команды для гемизиготных регионов
+# Build command for hemizygous regions
 build_hemi_command() {
     local input_file=$1
     local output_file=$2
 
     local cmd="$TOOLS/MAVR/scripts/alignment/coverage/generate_mask_from_coverage_bed.py"
     cmd+=" -c $input_file"
-    cmd+=" -m $(awk -v cov=$COVERAGE 'BEGIN{print cov/2}')"  # покрытие для гемизиготных
+    cmd+=" -m $(awk -v cov=$COVERAGE 'BEGIN{print cov/2}')"  # coverage for hemizygous regions
 
-    # Для гемизиготных регионов абсолютные пороги тоже делим на 2
+    # For hemizygous regions, absolute thresholds are also divided by 2
     if [[ -n "$MIN_RELATIVE" ]]; then
         cmd+=" --min_coverage_threshold $MIN_RELATIVE"
     elif [[ -n "$MIN_ABSOLUTE" ]]; then
@@ -161,18 +161,17 @@ get_output_filename() {
     local max_label=""
 
     if [[ -n "$MIN_RELATIVE" ]]; then
-        min_label="min${MIN_RELATIVE}"
+        min_label="minREL${MIN_RELATIVE}"
     elif [[ -n "$MIN_ABSOLUTE" ]]; then
-        min_label="minAbs${MIN_ABSOLUTE}"
+        min_label="minABS${MIN_ABSOLUTE}"
     fi
 
     if [[ -n "$MAX_RELATIVE" ]]; then
-        max_label="max${MAX_RELATIVE}"
+        max_label="maxREL${MAX_RELATIVE}"
     elif [[ -n "$MAX_ABSOLUTE" ]]; then
-        max_label="maxAbs${MAX_ABSOLUTE}"
+        max_label="maxABS${MAX_ABSOLUTE}"
     fi
 
-    # If both thresholds are specified
     if [[ -n "$min_label" && -n "$max_label" ]]; then
         echo "${base_input%.*.*}.${max_label}.${min_label}.bed"
     elif [[ -n "$min_label" ]]; then
@@ -190,12 +189,12 @@ if grep -qw "$SAMPLE" "$MALES"; then
 
     wait
 
-    # Диплоидные регионы
-    diploid_cmd=$(build_command "$COVERAGE" "${SAMPLE}.diploid.tmp.per-base.bed.gz" "${SAMPLE}.diploid.per-base.mask.bed")
+    # Diploid regions
+    diploid_cmd=$(build_diploid_command "${SAMPLE}.diploid.tmp.per-base.bed.gz" "${SAMPLE}.diploid.per-base.mask.bed")
     echo "[INFO] Running: $diploid_cmd"
     eval "$diploid_cmd" &
 
-    # Гемизиготные регионы (покрытие / 2)
+    # Hemizygous regions
     hemi_cmd=$(build_hemi_command "${SAMPLE}.hemi.tmp.per-base.bed.gz" "${SAMPLE}.hemi.per-base.mask.bed")
     echo "[INFO] Running: $hemi_cmd"
     eval "$hemi_cmd" &
@@ -210,7 +209,7 @@ else
     echo "[INFO] $SAMPLE == FEMALE"
 
     OUTPUT_FILE=$(get_output_filename "$PER_BASE_BED_FILE")
-    female_cmd=$(build_command "$COVERAGE" "$PER_BASE_BED_FILE" "$OUTPUT_FILE")
+    female_cmd=$(build_diploid_command "$PER_BASE_BED_FILE" "$OUTPUT_FILE")
     echo "[INFO] Running: $female_cmd"
     eval "$female_cmd"
 fi
