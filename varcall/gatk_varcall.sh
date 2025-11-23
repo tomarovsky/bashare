@@ -10,8 +10,8 @@ export PATH=$(conda info --base)/envs/gatk/bin/:${TOOLS}/gatk-4.6.2.0/:${PATH}
 
 if [ "$#" -ne 5 ]; then
     echo "Usage: $0 genome.fasta <BAM_LIST_FILE> <MALES_LIST_FILE> haploid.bed outprefix"
-    echo "  <BAM_LIST_FILE>: Path to a text file containing one BAM path per line."
-    echo "  <MALES_LIST_FILE>: Path to a text file containing one male sample ID path per line."
+    echo "  <BAM_LIST_FILE>: Path to a file containing one BAM path per line."
+    echo "  <MALES_LIST_FILE>: Path to a file containing one male sample ID path per line."
     exit 1
 fi
 
@@ -21,20 +21,9 @@ MALES_LIST_FILE=$3
 HAPLOID_BED=$4
 OUTPREFIX=$5
 
-if [ ! -f "$REF" ]; then
-    echo "[ERROR] Reference file not found: $REF"
-    exit 1
-fi
-
-if [ ! -f "$BAM_LIST_FILE" ]; then
-    echo "[ERROR] BAM list file not found: $BAM_LIST_FILE"
-    exit 1
-fi
-
-if [ ! -f "$HAPLOID_BED" ]; then
-    echo "[ERROR] Haploid BED file not found: $HAPLOID_BED"
-    exit 1
-fi
+if [ ! -f "$REF" ]; then echo "[ERROR] Reference file not found: $REF"; exit 1; fi
+if [ ! -f "$BAM_LIST_FILE" ]; then echo "[ERROR] BAM list file not found: $BAM_LIST_FILE"; exit 1; fi
+if [ ! -f "$HAPLOID_BED" ]; then echo "[ERROR] Haploid BED file not found: $HAPLOID_BED"; exit 1; fi
 
 mapfile -t BAM_ARRAY < <(grep -v '^[[:space:]]*$' "$BAM_LIST_FILE")
 mapfile -t MALES_ARRAY < <(grep -v '^[[:space:]]*$' "$MALES_LIST_FILE")
@@ -43,12 +32,10 @@ if [[ ! -f "${REF%.*}.dict" ]]; then
     picard CreateSequenceDictionary -R "$REF"
 fi
 
-# output directories
-mkdir -p gatk_tmp/intervals
-mkdir -p gatk_tmp/chunks
-mkdir -p gatk_tmp/logs
-mkdir -p gatk_tmp/gvcfs
+# ---- Directories ----
+mkdir -p gatk_tmp/intervals gatk_tmp/chunks gatk_tmp/logs gatk_tmp/gvcfs
 
+# ---- SplitIntervals ----
 echo "[1/4] SplitIntervals"
 if [ -z "$(ls -A gatk_tmp/intervals 2>/dev/null)" ]; then
     gatk --java-options "-Xmx8g" SplitIntervals \
@@ -61,18 +48,17 @@ else
 fi
 
 INTERVAL_FILES=(gatk_tmp/intervals/*.interval_list)
-
 ALL_SAMPLE_GVCFS=()
 
+# ---- BAM processing ----
 echo "[2/4] BAM processing..."
 for BAM in "${BAM_ARRAY[@]}"; do
-    # Sample ID: path/to/SAMPLE.alignment.bam -> SAMPLE
     NAME=$(basename "$BAM" | cut -d. -f1)
     FINAL_GVCF="gatk_tmp/gvcfs/${NAME}.g.vcf.gz"
 
     # Skip if sample GVCF already exists
     if [ -f "$FINAL_GVCF" ] && [ -f "${FINAL_GVCF}.tbi" ]; then
-        echo "[INFO] ${NAME}: GVCF already exists, skipping."
+        echo "[INFO] ${NAME}: GVCF already exists."
         ALL_SAMPLE_GVCFS+=("-V" "$FINAL_GVCF")
         continue
     fi
@@ -83,14 +69,11 @@ for BAM in "${BAM_ARRAY[@]}"; do
         if [[ "$M" == "$NAME" ]]; then IS_MALE=true; break; fi
     done
 
-    if [ "$IS_MALE" = true ]; then
-        echo "[INFO] ${NAME}: MALE"
-    else
-        echo "[INFO] ${NAME}: FEMALE"
-    fi
+    if [ "$IS_MALE" = true ]; then echo "[INFO] ${NAME}: MALE"; else echo "[INFO] ${NAME}: FEMALE"; fi
 
     CHUNK_FILES_ARGS=""
     CHUNKS_TO_PROCESS=0
+
     for i in "${!INTERVAL_FILES[@]}"; do
         INTERVAL="${INTERVAL_FILES[$i]}"
         ID=$(printf "%04d" $i) # 0001, 0002...
@@ -104,7 +87,7 @@ for BAM in "${BAM_ARRAY[@]}"; do
 
         # Check if chunk already exists
         if [ -f "$CHUNK_OUT" ] && [ -f "${CHUNK_OUT}.tbi" ]; then
-            echo "[INFO] ${NAME}.${ID}: Chunk already exists, skipping."
+            echo "[INFO] ${NAME}.${ID}: Chunk already exists."
             continue
         fi
 
@@ -115,30 +98,25 @@ for BAM in "${BAM_ARRAY[@]}"; do
                 P1="gatk_tmp/chunks/${NAME}.${ID}.p1.g.vcf.gz"
                 P2="gatk_tmp/chunks/${NAME}.${ID}.p2.g.vcf.gz"
 
-                # 1. Ploidy 1 (intersection of interval with haploid_bed)
+                # 1. Ploidy 1
                 if [ ! -f "$P1" ] || [ ! -f "${P1}.tbi" ]; then
                     gatk --java-options "-Xmx${JAVA_MEM}" HaplotypeCaller \
                         -R "$REF" -I "$BAM" -O "$P1" -ERC GVCF \
                         --sample-ploidy 1 \
                         -L "$INTERVAL" -L "$HAPLOID_BED" \
-                        |& tee -a "$LOG" || true
-                else
-                    echo "[INFO] ${NAME}.${ID}.p1: Already exists, skipping."
+                        |& tee -a "$LOG"
                 fi
 
-                # 2. Ploidy 2 (interval WITHOUT haploid_bed)
+                # 2. Ploidy 2
                 if [ ! -f "$P2" ] || [ ! -f "${P2}.tbi" ]; then
                     gatk --java-options "-Xmx${JAVA_MEM}" HaplotypeCaller \
                         -R "$REF" -I "$BAM" -O "$P2" -ERC GVCF \
                         --sample-ploidy 2 \
                         -L "$INTERVAL" -XL "$HAPLOID_BED" \
-                        |& tee -a "$LOG" || true
-                else
-                    echo "[INFO] ${NAME}.${ID}.p2: Already exists, skipping."
+                        |& tee -a "$LOG"
                 fi
 
-                # 3. Combine p1 and p2
-                # Check if files exist (GATK does not create a file if the region is empty)
+                # 3. Combine p1 and p2 using CombineGVCFs
                 COMBINE_LIST=""
                 if [ -f "$P1" ]; then COMBINE_LIST="$COMBINE_LIST -V $P1"; fi
                 if [ -f "$P2" ]; then COMBINE_LIST="$COMBINE_LIST -V $P2"; fi
@@ -148,12 +126,10 @@ for BAM in "${BAM_ARRAY[@]}"; do
                         -R "$REF" \
                         $COMBINE_LIST \
                         -O "$CHUNK_OUT" \
-                        >> "$LOG" 2>&1
-                elif [ -f "$CHUNK_OUT" ] && [ -f "${CHUNK_OUT}.tbi" ]; then
-                    echo "[INFO] ${NAME}.${ID}: Combined chunk already exists, skipping CombineGVCFs."
+                        |& tee -a "$LOG"
                 fi
 
-                # Remove p1 and p2 (only if we created them and chunk merge was successful)
+                # Cleanup
                 if [ -f "$CHUNK_OUT" ] && [ -f "${CHUNK_OUT}.tbi" ]; then
                     rm -f "$P1"* "$P2"*
                 fi
@@ -166,20 +142,12 @@ for BAM in "${BAM_ARRAY[@]}"; do
                         --sample-ploidy 2 \
                         -L "$INTERVAL" \
                         |& tee -a "$LOG"
-                else
-                    echo "[INFO] ${NAME}.${ID}: Chunk already exists, skipping."
                 fi
             fi
         ) &
     done
 
-    if [ $CHUNKS_TO_PROCESS -gt 0 ]; then
-        echo "[INFO] ${NAME}: waiting for $CHUNKS_TO_PROCESS chunks to process..."
-        wait
-        echo "[INFO] ${NAME}: all chunks processed."
-    else
-        echo "[INFO] ${NAME}: all chunks already exist."
-    fi
+    wait
 
     echo "[INFO] ${NAME}: merging chunks ..."
     if [ ! -f "$FINAL_GVCF" ] || [ ! -f "${FINAL_GVCF}.tbi" ]; then
@@ -188,20 +156,20 @@ for BAM in "${BAM_ARRAY[@]}"; do
             -O "$FINAL_GVCF"
         echo "[INFO] ${NAME}: chunks merged into final GVCF."
     else
-        echo "[INFO] ${NAME}: final GVCF already exists, skipping merge."
+        echo "[INFO] ${NAME}: final GVCF already exists."
     fi
 
-    # Remove chunk files only if final GVCF was successfully created
+    # Cleanup chunks
     if [ -f "$FINAL_GVCF" ] && [ -f "${FINAL_GVCF}.tbi" ]; then
         rm -f gatk_tmp/chunks/${NAME}.*.g.vcf.gz*
         echo "[INFO] ${NAME}: chunk files cleaned up."
     fi
 
-    ALL_SAMPLE_GVCFS+=("-V $FINAL_GVCF")
+    ALL_SAMPLE_GVCFS+=("-V" "$FINAL_GVCF")
     echo "[INFO] $NAME Done."
 done
 
-# All intervals (needed for GenomicsDBImport and GenotypeGVCFs)
+# Collect intervals (needed for GenomicsDBImport and GenotypeGVCFs)
 ALL_INTERVALS=()
 for INTERVAL_FILE in gatk_tmp/intervals/*.interval_list; do
     ALL_INTERVALS+=("-L" "$INTERVAL_FILE")
@@ -222,9 +190,8 @@ if [ ! -d "$DB_WORKSPACE" ]; then
         --reader-threads 1 \
         --batch-size 50
     echo "[INFO] GenomicsDBImport completed."
-
 else
-    echo "[INFO] GenomicsDB directory ($DB_WORKSPACE) already exists, skipping import."
+    echo "[INFO] GenomicsDB directory ($DB_WORKSPACE) already exists."
 fi
 
 echo "[4/4] GenotypeGVCFs"
@@ -235,13 +202,12 @@ if [ ! -f "$FINAL_VCF" ] || [ ! -f "${FINAL_VCF}.tbi" ]; then
         -V gendb://"$DB_WORKSPACE" \
         -O "$FINAL_VCF" \
         -G StandardAnnotation \
-        "${INTERVAL_ARGS[@]}" \
+        "${ALL_INTERVALS[@]}" \
         --only-output-calls-starting-in-intervals \
         --merge-input-intervals
-
     echo "[INFO] GenotypeGVCFs completed."
 else
-    echo "[INFO] Final VCF already exists, skipping."
+    echo "[INFO] Final VCF already exists."
 fi
 
 echo "[INFO] Done! Result: $FINAL_VCF"
