@@ -1,17 +1,19 @@
 #!/bin/bash
 # Usage: 200 GB RAM
-# common_mask.sh BED_FILES OUTPREFIX THREADS
-# $TOOLS/bashare/common_mask.sh *.max250.min33 mzib 64
+# common_mask_universal.sh BED_FILES N_COMB OUTPREFIX THREADS
+# Example: ./common_mask_universal.sh *.bed 3 result_prefix 64
 
-if [[ $# -lt 3 ]]; then
-    echo "Usage: $0 BED_FILE1 [BED_FILE2 ...] OUTPREFIX THREADS"
+if [[ $# -lt 4 ]]; then
+    echo "Usage: $0 BED_FILE1 [BED_FILE2 ...] N_COMB OUTPREFIX THREADS"
+    echo "  N_COMB: Number of files for intersection (e.g., 2, 3, 4...)"
     exit 1
 fi
 
 ARGS=("$@")
-OUTPREFIX="${ARGS[-2]}"
 THREADS="${ARGS[-1]}"
-BED_FILES=("${ARGS[@]:0:${#ARGS[@]}-2}")
+OUTPREFIX="${ARGS[-2]}"
+N_COMB="${ARGS[-3]}"
+BED_FILES=("${ARGS[@]:0:${#ARGS[@]}-3}")
 
 source $(conda info --base)/etc/profile.d/conda.sh
 conda activate varcall
@@ -28,35 +30,49 @@ for bed in "${BED_FILES[@]}"; do
     sorted_bed_files+=("${bed}.sorted.bed")
 done
 
-tmpdir="./tmp_intersect"
+tmpdir="./tmp_intersect_${OUTPREFIX}"
 mkdir -p "${tmpdir}/tmp_sort/"
 
-# all pairwise combinations and compute intersections in parallel
-for i in "${!sorted_bed_files[@]}"; do
-    for j in "${sorted_bed_files[@]:$((i+1))}"; do
-        echo "${sorted_bed_files[i]} $j"
+# Export tmpdir for parallel
+export tmpdir
+
+# 2. Generate combinations and intersect
+python3 -c "
+import sys, itertools
+n = int(sys.argv[1])
+files = sys.argv[2:]
+for combo in itertools.combinations(files, n):
+    print(' '.join(combo))
+" "$N_COMB" "${sorted_bed_files[@]}" | parallel -j "$THREADS" --colsep ' ' '
+    files=({@})
+    outfile="$tmpdir/job_{#}.intersect"
+
+    cmd="cat ${files[0]}"
+
+    for ((i=1; i<${#files[@]}; i++)); do
+        f="${files[$i]}"
+        cmd="$cmd | bedtools intersect -a stdin -b $f -sorted"
     done
-done | parallel -j "$THREADS" --colsep ' ' '
-    a={1}
-    b={2}
-    a_sample=$(basename "${a}" | cut -d"." -f1)
-    b_sample=$(basename "${b}" | cut -d"." -f1)
-    tmpfile="'"$tmpdir"'/${a_sample}_${b_sample}.intersect"
-    echo "Processing ${a_sample} vs ${b_sample} -> $tmpfile"
-    bedtools intersect \
-        -a "${a}" \
-        -b "${b}" \
-        -sorted | sort -k1,1 -k2,2n > "$tmpfile"
+
+    echo "Processing combination #{#} (Size ${#files[@]}) -> $outfile"
+
+    eval "$cmd" > "$outfile"
 '
 
-echo "Sorting..."
+echo "Sorting merged results..."
 sort -S 200G --parallel="$THREADS" -T "${tmpdir}/tmp_sort" --merge -k1,1 -k2,2n "$tmpdir"/*.intersect > "$tmpdir/all_intersect.sorted.bed"
 
-echo "Merging..."
-bedtools merge -i "$tmpdir/all_intersect.sorted.bed" > "${OUTPREFIX}.merge_all.intersect_2.mapq10.bed"
+echo "Merging final mask..."
+bedtools merge -i "$tmpdir/all_intersect.sorted.bed" > "${OUTPREFIX}.merge_all.intersect_N${N_COMB}.bed"
 
 echo "Total masked:"
-awk '{sum += $3 - $2} END {print sum}' "${OUTPREFIX}.merge_all.intersect_2.mapq10.bed"
+awk '{sum += $3 - $2} END {print sum}' "${OUTPREFIX}.merge_all.intersect_N${N_COMB}.bed"
 
 # cleanup temporary files
+echo "Cleaning up intersection tmp dir..."
 rm -r "$tmpdir"
+
+echo "Cleaning up sorted input files..."
+for f in "${sorted_bed_files[@]}"; do
+    rm "$f"
+done

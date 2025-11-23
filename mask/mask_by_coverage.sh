@@ -31,12 +31,14 @@ if grep -qw "$SAMPLE" "$MALES"; then
     wait
 
     "$TOOLS/MAVR/scripts/alignment/coverage/generate_mask_from_coverage_bed.py" \
-        -c ${SAMPLE}.diploid.tmp.per-base.bed.gz -m "$COVERAGE" \
+        -c ${SAMPLE}.diploid.tmp.per-base.bed.gz \
+        -m "$COVERAGE" \
         --max_coverage_threshold "$MAX_THRESHOLD" \
         --min_coverage_threshold "$MIN_THRESHOLD" \
         -o ${SAMPLE}.diploid.per-base.mask.bed &
     "$TOOLS/MAVR/scripts/alignment/coverage/generate_mask_from_coverage_bed.py" \
-        -c ${SAMPLE}.hemi.tmp.per-base.bed.gz -m "$(awk -v cov=$COVERAGE 'BEGIN{print cov/2}')" \
+        -c ${SAMPLE}.hemi.tmp.per-base.bed.gz \
+        -m "$(awk -v cov=$COVERAGE 'BEGIN{print cov/2}')" \
         --max_coverage_threshold "$MAX_THRESHOLD" \
         --min_coverage_threshold "$MIN_THRESHOLD" \
         -o ${SAMPLE}.hemi.per-base.mask.bed &
