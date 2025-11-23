@@ -9,14 +9,15 @@ JAVA_MEM="4g"
 export PATH=$(conda info --base)/envs/gatk/bin/:${TOOLS}/gatk-4.6.2.0/:${PATH}
 
 if [ "$#" -ne 5 ]; then
-    echo "Usage: $0 genome.fasta <BAM_LIST_FILE> <comma-separated male IDs> haploid.bed outprefix"
+    echo "Usage: $0 genome.fasta <BAM_LIST_FILE> <MALES_LIST_FILE> haploid.bed outprefix"
     echo "  <BAM_LIST_FILE>: Path to a text file containing one BAM path per line."
+    echo "  <MALES_LIST_FILE>: Path to a text file containing one male sample ID path per line."
     exit 1
 fi
 
 REF=$1
 BAM_LIST_FILE=$2
-MALES_LIST_RAW=$3
+MALES_LIST_FILE=$3
 HAPLOID_BED=$4
 OUTPREFIX=$5
 
@@ -36,7 +37,7 @@ if [ ! -f "$HAPLOID_BED" ]; then
 fi
 
 mapfile -t BAM_ARRAY < <(grep -v '^[[:space:]]*$' "$BAM_LIST_FILE")
-IFS=',' read -r -a MALES_ARRAY <<< "$MALES_LIST_RAW"
+mapfile -t MALES_ARRAY < <(grep -v '^[[:space:]]*$' "$MALES_LIST_FILE")
 
 if [[ ! -f "${REF%.*}.dict" ]]; then
     picard CreateSequenceDictionary -R "$REF"
