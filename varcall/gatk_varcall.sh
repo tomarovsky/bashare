@@ -97,10 +97,11 @@ for BAM in "${BAM_ARRAY[@]}"; do
                 P2="gatk_tmp/chunks/${NAME}.${ID}.p2.g.vcf.gz"
 
                 # 1. Ploidy 1
-                HAS_HAPLOID=$(bedtools intersect -a "$INTERVAL" -b "$HAPLOID_BED" | head -n 1)
+                # Check if INTERVAL is fully within HAPLOID_BED
+                HAS_HAPLOID=$(bedtools intersect -a <(cat "$INTERVAL" | grep -v "^@") -b "$HAPLOID_BED" | head -n 1)
 
                 if [ -z "$HAS_HAPLOID" ]; then
-                    echo "[INFO] ${NAME}.${ID}: INTERVAL has no haploid part, skipping ploidy-1 call." | tee -a "$LOG"
+                    echo "[INFO] ${NAME}.${ID}: INTERVAL fully without HAPLOID, skipping haploid varcall." | tee -a "$LOG"
                 else
                     if [ ! -f "$P1" ] || [ ! -f "${P1}.tbi" ]; then
                         gatk --java-options "-Xmx${JAVA_MEM}" HaplotypeCaller \
@@ -112,8 +113,8 @@ for BAM in "${BAM_ARRAY[@]}"; do
                 fi
 
                 # 2. Ploidy 2
-                # Check if INTERVAL is fully within HAPLOID_BED
-                HAS_DIPLOID=$(bedtools subtract -a "$INTERVAL" -b "$HAPLOID_BED" | head -n 1)
+                # Check if INTERVAL is fully without HAPLOID_BED
+                HAS_DIPLOID=$(bedtools subtract -a <(cat "$INTERVAL" | grep -v "^@") -b "$HAPLOID_BED" | head -n 1)
 
                 if [ -z "$HAS_DIPLOID" ]; then
                     echo "[INFO] ${NAME}.${ID}: INTERVAL fully within HAPLOID, skipping diploid varcall." | tee -a "$LOG"
