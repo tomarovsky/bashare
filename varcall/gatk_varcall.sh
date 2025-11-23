@@ -215,7 +215,7 @@ if [ ! -d "$DB_WORKSPACE" ]; then
         --genomicsdb-workspace-path "$DB_WORKSPACE" \
         --tmp-dir gatk_tmp \
         --merge-input-intervals \
-        --reader-threads 5 \
+        --reader-threads 1 \
         --batch-size 50
     echo "[INFO] GenomicsDBImport completed."
 
