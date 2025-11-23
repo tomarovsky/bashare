@@ -9,18 +9,33 @@ JAVA_MEM="4g"
 export PATH=$(conda info --base)/envs/gatk/bin/:${TOOLS}/gatk-4.6.2.0/:${PATH}
 
 if [ "$#" -ne 5 ]; then
-    echo "Usage: $0 genome.fasta <comma-separated BAM files> <comma-separated male IDs> haploid.bed outprefix"
+    echo "Usage: $0 genome.fasta <BAM_LIST_FILE> <comma-separated male IDs> haploid.bed outprefix"
+    echo "  <BAM_LIST_FILE>: Path to a text file containing one BAM path per line."
     exit 1
 fi
 
-# input data
 REF=$1
-BAM_LIST_RAW=$2
+BAM_LIST_FILE=$2
 MALES_LIST_RAW=$3
 HAPLOID_BED=$4
 OUTPREFIX=$5
 
-IFS=',' read -r -a BAM_ARRAY <<< "$BAM_LIST_RAW"
+if [ ! -f "$REF" ]; then
+    echo "[ERROR] Reference file not found: $REF"
+    exit 1
+fi
+
+if [ ! -f "$BAM_LIST_FILE" ]; then
+    echo "[ERROR] BAM list file not found: $BAM_LIST_FILE"
+    exit 1
+fi
+
+if [ ! -f "$HAPLOID_BED" ]; then
+    echo "[ERROR] Haploid BED file not found: $HAPLOID_BED"
+    exit 1
+fi
+
+mapfile -t BAM_ARRAY < <(grep -v '^[[:space:]]*$' "$BAM_LIST_FILE")
 IFS=',' read -r -a MALES_ARRAY <<< "$MALES_LIST_RAW"
 
 if [[ ! -f "${REF%.*}.dict" ]]; then
