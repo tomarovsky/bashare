@@ -137,16 +137,20 @@ for BAM in "${BAM_ARRAY[@]}"; do
                     echo "[INFO] ${NAME}.${ID}.p2: Already exists, skipping."
                 fi
 
-                # 3. Merge p1 and p2
+                # 3. Combine p1 and p2
                 # Check if files exist (GATK does not create a file if the region is empty)
-                MERGE_LIST=""
-                if [ -f "$P1" ]; then MERGE_LIST="$MERGE_LIST -I $P1"; fi
-                if [ -f "$P2" ]; then MERGE_LIST="$MERGE_LIST -I $P2"; fi
+                COMBINE_LIST=""
+                if [ -f "$P1" ]; then COMBINE_LIST="$COMBINE_LIST -V $P1"; fi
+                if [ -f "$P2" ]; then COMBINE_LIST="$COMBINE_LIST -V $P2"; fi
 
-                if [ -n "$MERGE_LIST" ] && ([ ! -f "$CHUNK_OUT" ] || [ ! -f "${CHUNK_OUT}.tbi" ]); then
-                    gatk --java-options "-Xmx2g" MergeVcfs $MERGE_LIST -O "$CHUNK_OUT" >> "$LOG" 2>&1
+                if [ -n "$COMBINE_LIST" ] && ([ ! -f "$CHUNK_OUT" ] || [ ! -f "${CHUNK_OUT}.tbi" ]); then
+                    gatk --java-options "-Xmx4g" CombineGVCFs \
+                        -R "$REF" \
+                        $VCF_INPUTS \
+                        -O "$CHUNK_OUT" \
+                        >> "$LOG" 2>&1
                 elif [ -f "$CHUNK_OUT" ] && [ -f "${CHUNK_OUT}.tbi" ]; then
-                    echo "[INFO] ${NAME}.${ID}: Merged chunk already exists, skipping merge."
+                    echo "[INFO] ${NAME}.${ID}: Combined chunk already exists, skipping CombineGVCFs."
                 fi
 
                 # Remove p1 and p2 (only if we created them and chunk merge was successful)
