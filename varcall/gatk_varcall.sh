@@ -146,7 +146,7 @@ for BAM in "${BAM_ARRAY[@]}"; do
                 if [ -n "$COMBINE_LIST" ] && ([ ! -f "$CHUNK_OUT" ] || [ ! -f "${CHUNK_OUT}.tbi" ]); then
                     gatk --java-options "-Xmx4g" CombineGVCFs \
                         -R "$REF" \
-                        $VCF_INPUTS \
+                        $COMBINE_LIST \
                         -O "$CHUNK_OUT" \
                         >> "$LOG" 2>&1
                 elif [ -f "$CHUNK_OUT" ] && [ -f "${CHUNK_OUT}.tbi" ]; then
