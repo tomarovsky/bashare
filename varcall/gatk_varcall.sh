@@ -189,42 +189,34 @@ for BAM in "${BAM_ARRAY[@]}"; do
     echo "[INFO] $NAME Done."
 done
 
-# Collect intervals (needed for GenomicsDBImport and GenotypeGVCFs)
-ALL_INTERVALS=()
-for INTERVAL_FILE in gatk_tmp/intervals/*.interval_list; do
-    ALL_INTERVALS+=("-L" "$INTERVAL_FILE")
-done
+echo "[3/4] CombineGVCFs (Merging all samples)"
+COMBINED_GVCF="${OUTPREFIX}.combined.g.vcf.gz"
 
-echo "[3/4] GenomicsDBImport"
-DB_WORKSPACE="gatk_tmp/genomics_db"
-# GenomicsDBImport do not work if outdir already exists
-if [ ! -d "$DB_WORKSPACE" ]; then
-    echo "[INFO] Creating new GenomicsDB..."
-    # use --genomicsdb-update-workspace-path "$DB_WORKSPACE" \ to update existing db
-    gatk --java-options "-Xmx64g" GenomicsDBImport \
+if [ ! -f "$COMBINED_GVCF" ] || [ ! -f "${COMBINED_GVCF}.tbi" ]; then
+    echo "[INFO] Merging sample GVCFs into one..."
+
+    gatk --java-options "-Xmx64g" CombineGVCFs \
+        -R "$REF" \
         "${ALL_SAMPLE_GVCFS[@]}" \
-        "${ALL_INTERVALS[@]}" \
-        --genomicsdb-workspace-path "$DB_WORKSPACE" \
-        --tmp-dir gatk_tmp \
-        --merge-input-intervals \
-        --reader-threads 1 \
-        --batch-size 50
-    echo "[INFO] GenomicsDBImport completed."
+        -O "$COMBINED_GVCF"
+
+    echo "[INFO] CombineGVCFs completed."
 else
-    echo "[INFO] GenomicsDB directory ($DB_WORKSPACE) already exists."
+    echo "[INFO] Combined GVCF already exists: $COMBINED_GVCF"
 fi
 
 echo "[4/4] GenotypeGVCFs"
 FINAL_VCF="${OUTPREFIX}.vcf.gz"
+
 if [ ! -f "$FINAL_VCF" ] || [ ! -f "${FINAL_VCF}.tbi" ]; then
+    echo "[INFO] Genotyping..."
+
     gatk --java-options "-Xmx64g" GenotypeGVCFs \
         -R "$REF" \
-        -V gendb://"$DB_WORKSPACE" \
+        -V "$COMBINED_GVCF" \
         -O "$FINAL_VCF" \
-        -G StandardAnnotation \
-        "${ALL_INTERVALS[@]}" \
-        --only-output-calls-starting-in-intervals \
-        --merge-input-intervals
+        -G StandardAnnotation
+
     echo "[INFO] GenotypeGVCFs completed."
 else
     echo "[INFO] Final VCF already exists."
