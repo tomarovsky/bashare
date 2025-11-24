@@ -37,13 +37,13 @@ mkdir -p "${tmpdir}/tmp_sort/"
 export tmpdir
 
 # 2. Generate combinations and intersect
-python3 -c "
+python3 -c '
 import sys, itertools
 n = int(sys.argv[1])
 files = sys.argv[2:]
 for combo in itertools.combinations(files, n):
-    print(' '.join(combo))
-" "$N_COMB" "${sorted_bed_files[@]}" | parallel -j "$THREADS" '
+    sys.stdout.write(";".join(combo))
+' "$N_COMB" "${sorted_bed_files[@]}" | parallel --colsep ";" -j "$THREADS" '
     read -ra files <<< "{}"
     outfile="$tmpdir/job_{#}.intersect"
 
