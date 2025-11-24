@@ -172,7 +172,8 @@ for BAM in "${BAM_ARRAY[@]}"; do
     if [ ! -f "$FINAL_GVCF" ] || [ ! -f "${FINAL_GVCF}.tbi" ]; then
         gatk --java-options "-Xmx16g" MergeVcfs \
             $CHUNK_FILES_ARGS \
-            -O "$FINAL_GVCF"
+            -O "$FINAL_GVCF" \
+            >> "$LOG" 2>&1
         echo "[INFO] ${NAME}: chunks merged into final GVCF."
     else
         echo "[INFO] ${NAME}: final GVCF already exists."
