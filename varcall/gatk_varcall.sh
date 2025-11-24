@@ -98,7 +98,7 @@ for BAM in "${BAM_ARRAY[@]}"; do
 
                 # 1. Ploidy 1
                 # Check if INTERVAL is fully within HAPLOID_BED
-                HAS_HAPLOID=$(bedtools intersect -a <(cat "$INTERVAL" | grep -v "^@") -b "$HAPLOID_BED" | head -n 1)
+                HAS_HAPLOID=$(bedtools intersect -a <(cat "$INTERVAL" | grep -v "^@") -b "$HAPLOID_BED")
 
                 if [ -z "$HAS_HAPLOID" ]; then
                     echo "[INFO] ${NAME}.${ID}: INTERVAL fully without HAPLOID, skipping haploid varcall." | tee -a "$LOG"
@@ -114,7 +114,7 @@ for BAM in "${BAM_ARRAY[@]}"; do
 
                 # 2. Ploidy 2
                 # Check if INTERVAL is fully without HAPLOID_BED
-                HAS_DIPLOID=$(bedtools subtract -a <(cat "$INTERVAL" | grep -v "^@") -b "$HAPLOID_BED" | head -n 1)
+                HAS_DIPLOID=$(bedtools subtract -a <(cat "$INTERVAL" | grep -v "^@") -b "$HAPLOID_BED")
 
                 if [ -z "$HAS_DIPLOID" ]; then
                     echo "[INFO] ${NAME}.${ID}: INTERVAL fully within HAPLOID, skipping diploid varcall." | tee -a "$LOG"
