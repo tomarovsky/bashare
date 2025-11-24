@@ -44,7 +44,7 @@ files = sys.argv[2:]
 for combo in itertools.combinations(files, n):
     print(' '.join(combo))
 " "$N_COMB" "${sorted_bed_files[@]}" | parallel -j "$THREADS" '
-    files=("$@")
+    read -ra files <<< "{}"
     outfile="$tmpdir/job_{#}.intersect"
 
     cmd="cat ${files[0]}"
