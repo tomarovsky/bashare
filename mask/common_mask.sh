@@ -48,8 +48,8 @@ for combo in itertools.combinations(files, n):
     read -ra files <<< "{}"
     outfile="$tmpdir/job_{#}.intersect"
 
-    echo "Processing combination #{#} (Size ${#files[@]}) -> $outfile"
-    echo "Files: ${files[@]}"
+    echo "[INFO] Processing combination #{#} (Size ${#files[@]}) -> $outfile"
+    echo "[INFO] Files: ${files[@]}"
 
     cmd="cat ${files[0]}"
 
@@ -58,14 +58,14 @@ for combo in itertools.combinations(files, n):
         cmd+=" | bedtools intersect -a stdin -b $f -sorted"
     done
 
-    echo "Command: $cmd"
+    echo "[INFO] CMD: $cmd"
     eval "$cmd" > "$outfile"
 '
 
-echo "Sorting merged results..."
+echo "[INFO] Sorting merged results..."
 sort -S 200G --parallel="$THREADS" -T "${tmpdir}/tmp_sort" --merge -k1,1 -k2,2n "$tmpdir"/*.intersect > "$tmpdir/all_intersect.sorted.bed"
 
-echo "Merging final mask..."
+echo "[INFO] Merging final mask..."
 bedtools merge -i "$tmpdir/all_intersect.sorted.bed" > "${OUTPREFIX}.merge_all.intersect_N${N_COMB}.bed"
 
 echo "Total masked:"
