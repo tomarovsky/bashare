@@ -1,7 +1,9 @@
 #!/bin/bash
 # Usage: 200 GB RAM
 # common_mask_universal.sh BED_FILES N_COMB OUTPREFIX THREADS
-# Example: ./common_mask_universal.sh *.bed 3 result_prefix 64
+# Example: ./common_mask_universal.sh *.bed 2 result_prefix 64
+
+set -euo pipefail
 
 if [[ $# -lt 4 ]]; then
     echo "Usage: $0 BED_FILE1 [BED_FILE2 ...] N_COMB OUTPREFIX THREADS"
