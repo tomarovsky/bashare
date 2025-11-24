@@ -44,14 +44,14 @@ files = sys.argv[2:]
 for combo in itertools.combinations(files, n):
     print(' '.join(combo))
 " "$N_COMB" "${sorted_bed_files[@]}" | parallel -j "$THREADS" '
-    read -ra files <<< "{}"
+    files=({})
     outfile="$tmpdir/job_{#}.intersect"
 
     cmd="cat ${files[0]}"
 
     for ((i=1; i<${#files[@]}; i++)); do
         f="${files[$i]}"
-        cmd="$cmd | bedtools intersect -a stdin -b $f -sorted"
+        cmd="$cmd | bedtools intersect -a stdin -b \"$f\" -sorted"
     done
 
     echo "Processing combination #{#} (Size ${#files[@]}) -> $outfile"
