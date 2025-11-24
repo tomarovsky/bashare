@@ -47,16 +47,15 @@ for combo in itertools.combinations(files, n):
     read -ra files <<< "{}"
     outfile="$tmpdir/job_{#}.intersect"
 
-    cmd="cat ${files[0]}"
-    echo $cmd
+    echo "Processing combination #{#} (Size ${#files[@]}) -> $outfile"
+    echo "Files: ${files[@]}"
 
     for ((i=1; i<${#files[@]}; i++)); do
         f="${files[$i]}"
-        cmd="$cmd | bedtools intersect -a stdin -b \"$f\" -sorted"
+        cmd="cat ${files[0]} | bedtools intersect -a stdin -b \"$f\" -sorted"
     done
 
-    echo "Processing combination #{#} (Size ${#files[@]}) -> $outfile"
-
+    echo "Command: $cmd"
     eval "$cmd" > "$outfile"
 '
 
