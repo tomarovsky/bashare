@@ -6,6 +6,7 @@
 if [[ $# -lt 4 ]]; then
     echo "Usage: $0 BED_FILE1 [BED_FILE2 ...] N_COMB OUTPREFIX THREADS"
     echo "  N_COMB: Number of files for intersection (e.g., 2, 3, 4...)"
+    echo "  Tools: bedtools, python3"
     exit 1
 fi
 
@@ -14,9 +15,6 @@ THREADS="${ARGS[-1]}"
 OUTPREFIX="${ARGS[-2]}"
 N_COMB="${ARGS[-3]}"
 BED_FILES=("${ARGS[@]:0:${#ARGS[@]}-3}")
-
-source $(conda info --base)/etc/profile.d/conda.sh
-conda activate varcall
 
 # sort all input BED files
 printf "%s\n" "${BED_FILES[@]}" | parallel -j "$THREADS" '
