@@ -43,11 +43,12 @@ n = int(sys.argv[1])
 files = sys.argv[2:]
 for combo in itertools.combinations(files, n):
     print(' '.join(combo))
-" "$N_COMB" "${sorted_bed_files[@]}" | parallel -j "$THREADS" '
-    files=({})
+" "$N_COMB" "${sorted_bed_files[@]}" \
+| parallel --colsep ' ' -j "$THREADS" '
+    files=("$@")
     outfile="$tmpdir/job_{#}.intersect"
 
-    cmd="cat ${files[0]}"
+    cmd="cat \"${files[0]}\""
 
     for ((i=1; i<${#files[@]}; i++)); do
         f="${files[$i]}"
