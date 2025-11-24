@@ -42,7 +42,7 @@ import sys, itertools
 n = int(sys.argv[1])
 files = sys.argv[2:]
 for combo in itertools.combinations(files, n):
-    sys.stdout.write(";".join(combo))
+    sys.stdout.write(";".join(combo) + "\n")
 ' "$N_COMB" "${sorted_bed_files[@]}" | parallel --colsep ";" -j "$THREADS" '
     read -ra files <<< "{}"
     outfile="$tmpdir/job_{#}.intersect"
