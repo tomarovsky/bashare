@@ -9,6 +9,7 @@ fi
 
 PATHS_FILE="$1"
 
+echo "----------------"
 while IFS= read -r path
 do
     if [[ -e "$path" ]]; then
@@ -17,3 +18,4 @@ do
         echo "NOT exist: $path"
     fi
 done < "$PATHS_FILE"
+echo "----------------"
