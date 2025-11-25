@@ -12,8 +12,8 @@ fi
 while IFS= read -r path
 do
     if [[ -e "$path" ]]; then
-        echo "✅ Exist: $path"
+        echo "Exist: $path"
     else
-        echo "❌ Not exist: $path"
+        echo "NOT exist: $path"
     fi
 done < "$PATHS_FILE"
