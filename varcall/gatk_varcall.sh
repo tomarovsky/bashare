@@ -198,7 +198,8 @@ if [ ! -f "$COMBINED_GVCF" ] || [ ! -f "${COMBINED_GVCF}.tbi" ]; then
     gatk --java-options "-Xmx64g" CombineGVCFs \
         -R "$REF" \
         "${ALL_SAMPLE_GVCFS[@]}" \
-        -O "$COMBINED_GVCF"
+        -O "$COMBINED_GVCF" \
+        >> "$LOG" 2>&1
 
     echo "[INFO] CombineGVCFs completed."
 else
@@ -215,7 +216,8 @@ if [ ! -f "$FINAL_VCF" ] || [ ! -f "${FINAL_VCF}.tbi" ]; then
         -R "$REF" \
         -V "$COMBINED_GVCF" \
         -O "$FINAL_VCF" \
-        -G StandardAnnotation
+        -G StandardAnnotation \
+        >> "$LOG" 2>&1
 
     echo "[INFO] GenotypeGVCFs completed."
 else
