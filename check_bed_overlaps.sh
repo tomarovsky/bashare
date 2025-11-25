@@ -1,11 +1,11 @@
 #!/bin/bash
 
-BED_FILE="$1"
-
-if [[ -z "$BED_FILE" ]]; then
-    echo "Usage: $0 input.bed"
+if [ "$#" -ne 1 ]; then
+    echo "Usage: $0 BED_FILE"
     exit 1
 fi
+
+BED_FILE="$1"
 
 # Number of lines in the original BED file
 ORIG_LINES=$(wc -l < "$BED_FILE")

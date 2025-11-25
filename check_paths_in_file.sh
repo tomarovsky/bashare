@@ -2,12 +2,12 @@
 
 set -euo pipefail
 
-PATHS_FILE="$1"
-
-if [[ -z "$PATHS_FILE" ]]; then
+if [[ "$#" -ne 1 ]]; then
     echo "Usage: $0 <file_with_paths>"
     exit 1
 fi
+
+PATHS_FILE="$1"
 
 while IFS= read -r path
 do
