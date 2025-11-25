@@ -97,12 +97,10 @@ for BAM in "${BAM_ARRAY[@]}"; do
                 P2="gatk_tmp/chunks/${NAME}.${ID}.p2.g.vcf.gz"
 
                 # 1. Ploidy 1
-                # Check if INTERVAL is fully within HAPLOID_BED
-                HAS_HAPLOID=$(bedtools intersect -a <(cat "$INTERVAL" | grep -v "^@") -b "$HAPLOID_BED")
+                # Check if INTERVAL intersects with HAPLOID_BED
+                HAS_HAPLOID=$(bedtools intersect -a <(grep -v "^@" "$INTERVAL") -b "$HAPLOID_BED")
 
-                if [ -z "$HAS_HAPLOID" ]; then
-                    echo "[INFO] ${NAME}.${ID}: INTERVAL fully without HAPLOID, skipping haploid varcall." | tee -a "$LOG"
-                else
+                if [ -n "$HAS_HAPLOID" ]; then # line is not empty
                     if [ ! -f "$P1" ] || [ ! -f "${P1}.tbi" ]; then
                         gatk --java-options "-Xmx${JAVA_MEM}" HaplotypeCaller \
                             -R "$REF" -I "$BAM" -O "$P1" -ERC GVCF \
@@ -110,15 +108,15 @@ for BAM in "${BAM_ARRAY[@]}"; do
                             -L "$INTERVAL" -L "$HAPLOID_BED" \
                             >> "$LOG" 2>&1
                     fi
+                else
+                    echo "[INFO] ${NAME}.${ID}: INTERVAL does not intersect with HAPLOID, skipping haploid varcall." | tee -a "$LOG"
                 fi
 
                 # 2. Ploidy 2
-                # Check if INTERVAL is fully without HAPLOID_BED
-                HAS_DIPLOID=$(bedtools subtract -a <(cat "$INTERVAL" | grep -v "^@") -b "$HAPLOID_BED")
+                # Check if INTERVAL has regions outside HAPLOID_BED
+                HAS_DIPLOID=$(bedtools subtract -a <(grep -v "^@" "$INTERVAL") -b "$HAPLOID_BED")
 
-                if [ -z "$HAS_DIPLOID" ]; then
-                    echo "[INFO] ${NAME}.${ID}: INTERVAL fully within HAPLOID, skipping diploid varcall." | tee -a "$LOG"
-                else
+                if [ -n "$HAS_DIPLOID" ]; then # line is not empty
                     if [ ! -f "$P2" ] || [ ! -f "${P2}.tbi" ]; then
                         gatk --java-options "-Xmx${JAVA_MEM}" HaplotypeCaller \
                             -R "$REF" -I "$BAM" -O "$P2" -ERC GVCF \
@@ -126,6 +124,8 @@ for BAM in "${BAM_ARRAY[@]}"; do
                             -L "$INTERVAL" -XL "$HAPLOID_BED" \
                             >> "$LOG" 2>&1
                     fi
+                else
+                    echo "[INFO] ${NAME}.${ID}: INTERVAL intersects with HAPLOID, skipping diploid varcall." | tee -a "$LOG"
                 fi
 
                 # 3. Combine p1 and p2
