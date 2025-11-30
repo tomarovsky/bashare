@@ -1,0 +1,21 @@
+name: py38
+channels:
+    - conda-forge
+dependencies:
+    - python=3.8
+    - setuptools
+    - numpy>=1.26
+    - pandas
+    - scipy
+    - matplotlib
+    - seaborn
+    - scikit-learn
+    - biopython
+    - ete3
+    - scikit-allel
+    - statsmodels
+    - bcbio-gff
+    - xmltodict
+    - xlsxwriter
+    - pyparsing
+    - venn
