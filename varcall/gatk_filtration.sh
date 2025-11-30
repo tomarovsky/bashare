@@ -21,6 +21,16 @@ mkdir -p gatk_filtration/ROH/
 cd gatk_filtration/
 
 echo "Step 1: Marking variants with GATK Hard Filters"
+# QD < 2.0 - Low quality score normalized by depth.
+# QUAL < 30.0 - Low raw quality score of the variant.
+# SOR > 3.0 - High strand bias (variants supported by reads in only one direction).
+# FS > 60.0 for SNPs - Extreme strand bias specifically for SNPs.
+# FS > 200.0 for Indels - Extreme strand bias specifically for insertions/deletions.
+# MQ < 40.0 - Low mapping quality of the supporting reads.
+#
+# Genotype-Level Filter is applied to individual sample genotypes within a variant.
+# FAIL_GT: DP < 5 || GQ < 20 - Low read depth or low genotype quality for a specific sample.
+# Note: Filtered variants and genotypes are marked as FAIL in the output VCF but are not removed.
 
 gatk --java-options "-Xmx8g" VariantFiltration \
     -R ${ASSEMBLY} \
