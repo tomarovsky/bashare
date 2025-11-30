@@ -1,0 +1,14 @@
+name: admixture
+channels:
+    - bioconda
+    - conda-forge
+dependencies:
+    - bioconda::plink=1.9
+    - bioconda::admixture
+    - ipyrad::clumpp
+    - bioconda::admixtools
+    - conda-forge::r-base
+    - conda-forge::r-devtools
+    - conda-forge::r-vcfr
+postBuild:
+    - Rscript -e 'devtools::install_github("omys-omics/triangulaR")'
