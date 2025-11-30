@@ -3,10 +3,11 @@
 set -euo pipefail
 
 export VCF=$1 # Output from GenotypeGVCFs
-export PREFIX=${VCF%.*.*}
-export MASK=$2 # Bed file
+export MASK=$2 # BED file
 export ASSEMBLY=$3 # Reference FASTA
 export THREADS=$4
+
+export PREFIX=${VCF%.*.*}
 
 if [[ $# -lt 4 ]]; then
     echo "Usage: $0 VCF MASK ASSEMBLY THREADS"
