@@ -10,5 +10,4 @@ dependencies:
     - conda-forge::r-base
     - conda-forge::r-devtools
     - conda-forge::r-vcfr
-postBuild:
-    - Rscript -e 'devtools::install_github("omys-omics/triangulaR")'
+# Rscript -e 'devtools::install_github("omys-omics/triangulaR")'
