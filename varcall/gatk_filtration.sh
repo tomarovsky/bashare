@@ -32,8 +32,6 @@ gatk --java-options "-Xmx8g" VariantFiltration \
     --filter-expression "vc.isSNP() && FS > 60.0" --filter-name "SNP_FS60" \
     --filter-expression "vc.isIndel() && FS > 200.0" --filter-name "INDEL_FS200" \
     --filter-expression "MQ < 40.0" --filter-name "MQ40" \
-    --filter-expression "MQRankSum < -12.5" --filter-name "MQRankSum-12.5" \
-    --filter-expression "ReadPosRankSum < -8.0" --filter-name "ReadPosRankSum-8" \
     --genotype-filter-expression "DP < 5 || GQ < 20" \
     --genotype-filter-name "FAIL_GT"
 
