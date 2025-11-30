@@ -10,4 +10,5 @@ dependencies:
     - conda-forge::r-base
     - conda-forge::r-devtools
     - conda-forge::r-vcfr
+# Rscript -e 'install.packages(c("ggplot2", "ggrepel"))'
 # Rscript -e 'devtools::install_github("omys-omics/triangulaR")'
