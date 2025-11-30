@@ -1,0 +1,12 @@
+name: mahajrod
+channels:
+    - mahajrod
+    - conda-forge
+    - bioconda
+dependencies:
+    - routoolpa
+    - mace
+    - mavr
+    - krater
+    - bioconda::bedtools
+    - bioconda::samtools
