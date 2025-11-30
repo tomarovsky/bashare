@@ -95,6 +95,6 @@ process_sample() {
 }
 export -f process_sample
 
-echo "$SAMPLES" | parallel -j 6 process_sample {}
+echo "$SAMPLES" | parallel -j $THREADS process_sample {}
 
 echo "$(date) | Done."
