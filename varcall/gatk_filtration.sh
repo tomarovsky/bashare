@@ -2,20 +2,20 @@
 
 set -euo pipefail
 
-export VCF=$1 # Output from GenotypeGVCFs
-export MASK=$2 # BED file
-export ASSEMBLY=$3 # Reference FASTA
-export THREADS=$4
-
-export PREFIX=${VCF%.*.*}
+# GATK
+export PATH=$(conda info --base)/envs/gatk/bin/:${TOOLS}/gatk-4.6.2.0/:${PATH}
 
 if [[ $# -lt 4 ]]; then
     echo "Usage: $0 VCF MASK ASSEMBLY THREADS"
     exit 1
 fi
 
-# GATK
-export PATH=$(conda info --base)/envs/gatk/bin/:${TOOLS}/gatk-4.6.2.0/:${PATH}
+export VCF=$1 # Output from GenotypeGVCFs
+export MASK=$2 # BED file
+export ASSEMBLY=$3 # Reference FASTA
+export THREADS=$4
+
+export PREFIX=${VCF%.*.*}
 
 mkdir -p gatk_filtration/ROH/
 cd gatk_filtration/
