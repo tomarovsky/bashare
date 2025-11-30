@@ -1,0 +1,13 @@
+name: varcall
+channels:
+    - bioconda
+    - conda-forge
+dependencies:
+    - conda-forge::openjdk=17
+    - bioconda::picard
+    - bioconda::bcftools
+    - bioconda::bedtools
+    - bioconda::samtools
+    - bioconda::htslib
+    - bioconda::bwa
+    - bioconda::mosdepth
