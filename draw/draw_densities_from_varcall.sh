@@ -53,8 +53,8 @@ bcftools query -l ${FILT_MASK_VCF} | parallel -j $THREADS '
 
     # Heterozygous SNP density (w100kb.s10kb) only counts
     $TOOLS/MACE/scripts/draw_variant_window_densities.py \
-        -i ${SAMPLE}.${PREFIX}.filt.mask.snp.homo.vcf.gz \
-        -o ${SAMPLE}.${PREFIX}.filt.mask.snp.homo.w100kb.s10kb \
+        -i ${SAMPLE}.${PREFIX}.filt.mask.snp.hetero.vcf.gz \
+        -o ${SAMPLE}.${PREFIX}.filt.mask.snp.hetero.w100kb.s10kb \
         --scaffold_ordered_list ${ASSEMBLY_BASEPATH}.orderlist \
         --scaffold_white_list ${ASSEMBLY_BASEPATH}.whitelist \
         --scaffold_length_file ${ASSEMBLY_BASEPATH}.len \
