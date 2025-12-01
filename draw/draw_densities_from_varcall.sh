@@ -2,8 +2,8 @@
 
 set -euo pipefail
 
-if [[ $# -lt 4 ]]; then
-    echo "Usage: $0 PREFIX ASSEMBLY_BASEPATH THREADS"
+if [[ $# -lt 3 ]]; then
+    echo "Usage: $0 FILT_MASK_VCF ASSEMBLY_BASEPATH THREADS"
     exit 1
 fi
 
