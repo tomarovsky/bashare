@@ -21,6 +21,10 @@ MALES_LIST_FILE=$3
 HAPLOID_BED=$4
 OUTPREFIX=$5
 
+# Check dependencies
+command -v bedtools >/dev/null 2>&1 || { echo >&2 "[ERROR] bedtools not found in PATH."; exit 1; }
+command -v gatk >/dev/null 2>&1 || { echo >&2 "[ERROR] gatk not found in PATH."; exit 1; }
+
 if [ ! -f "$REF" ]; then echo "[ERROR] Reference file not found: $REF"; exit 1; fi
 if [ ! -f "$BAM_LIST_FILE" ]; then echo "[ERROR] BAM list file not found: $BAM_LIST_FILE"; exit 1; fi
 if [ ! -f "$HAPLOID_BED" ]; then echo "[ERROR] Haploid BED file not found: $HAPLOID_BED"; exit 1; fi
@@ -55,6 +59,7 @@ echo "[2/4] BAM processing..."
 for BAM in "${BAM_ARRAY[@]}"; do
     NAME=$(basename "$BAM" | cut -d. -f1)
     FINAL_GVCF="gatk_tmp/gvcfs/${NAME}.g.vcf.gz"
+    SAMPLE_LOG="gatk_tmp/logs/${NAME}.main.log"
 
     # Skip if sample GVCF already exists
     if [ -f "$FINAL_GVCF" ] && [ -f "${FINAL_GVCF}.tbi" ]; then
@@ -79,7 +84,7 @@ for BAM in "${BAM_ARRAY[@]}"; do
 
         # Files for this chunk
         CHUNK_OUT="gatk_tmp/chunks/${NAME}.${ID}.g.vcf.gz"
-        LOG="gatk_tmp/logs/${NAME}.${ID}.log"
+        CHUNK_LOG="gatk_tmp/logs/${NAME}.${ID}.log"
 
         # Collect arguments for future merging
         CHUNK_FILES_ARGS="${CHUNK_FILES_ARGS} -I $CHUNK_OUT"
@@ -102,32 +107,23 @@ for BAM in "${BAM_ARRAY[@]}"; do
                 # 1. Ploidy 1 (Intersection)
                 # Generate BED file intersection and save it
                 bedtools intersect -a <(grep -v "^@" "$INTERVAL") -b "$HAPLOID_BED" > "$P1_BED"
-
-                # Check if the file is not empty
                 if [ -s "$P1_BED" ]; then
                     if [ ! -f "$P1" ] || [ ! -f "${P1}.tbi" ]; then
                         echo "${NAME}.${ID} | Ploidy 1 processing..."
                         gatk --java-options "-Xmx${JAVA_MEM}" HaplotypeCaller \
                             -R "$REF" -I "$BAM" -O "$P1" -ERC GVCF \
-                            --sample-ploidy 1 \
-                            -L "$P1_BED" \
-                            >> "$LOG" 2>&1
+                            --sample-ploidy 1 -L "$P1_BED" >> "$CHUNK_LOG" 2>&1
                     fi
                 fi
 
                 # 2. Ploidy 2 (Subtraction)
                 # Generate BED file subtraction and save it
                 bedtools subtract -a <(grep -v "^@" "$INTERVAL") -b "$HAPLOID_BED" > "$P2_BED"
-
-                # Check if the file is not empty
                 if [ -s "$P2_BED" ]; then
                     if [ ! -f "$P2" ] || [ ! -f "${P2}.tbi" ]; then
-                        echo "${NAME}.${ID} | Ploidy 2 processing..."
                         gatk --java-options "-Xmx${JAVA_MEM}" HaplotypeCaller \
                             -R "$REF" -I "$BAM" -O "$P2" -ERC GVCF \
-                            --sample-ploidy 2 \
-                            -L "$P2_BED" \
-                            >> "$LOG" 2>&1
+                            --sample-ploidy 2 -L "$P2_BED" >> "$CHUNK_LOG" 2>&1
                     fi
                 fi
 
@@ -135,18 +131,18 @@ for BAM in "${BAM_ARRAY[@]}"; do
                 if [ ! -f "$CHUNK_OUT" ] || [ ! -f "${CHUNK_OUT}.tbi" ]; then
                     if [ -f "$P1" ] && [ -f "$P2" ]; then
                         gatk --java-options "-Xmx4g" CombineGVCFs \
-                            -R "$REF" -V "$P1" -V "$P2" -O "$CHUNK_OUT" >> "$LOG" 2>&1
+                            -R "$REF" -V "$P1" -V "$P2" -O "$CHUNK_OUT" >> "$CHUNK_LOG" 2>&1
                     elif [ -f "$P1" ]; then
                         cp "$P1" "$CHUNK_OUT" && cp "${P1}.tbi" "${CHUNK_OUT}.tbi"
                     elif [ -f "$P2" ]; then
                         cp "$P2" "$CHUNK_OUT" && cp "${P2}.tbi" "${CHUNK_OUT}.tbi"
                     else
-                        echo "[ERROR] No P1 or P2 produced for ${NAME}.${ID}" | tee -a "$LOG"
+                        echo "[ERROR] No P1 or P2 produced for ${NAME}.${ID}" >> "$CHUNK_LOG"
                         exit 1
                     fi
                 fi
 
-                # Cleanup
+                # Cleanup temps
                 if [ -f "$CHUNK_OUT" ] && [ -f "${CHUNK_OUT}.tbi" ]; then
                     rm -f "$P1"* "$P2"* "$P1_BED" "$P2_BED"
                 fi
@@ -156,9 +152,7 @@ for BAM in "${BAM_ARRAY[@]}"; do
                 if [ ! -f "$CHUNK_OUT" ] || [ ! -f "${CHUNK_OUT}.tbi" ]; then
                     gatk --java-options "-Xmx${JAVA_MEM}" HaplotypeCaller \
                         -R "$REF" -I "$BAM" -O "$CHUNK_OUT" -ERC GVCF \
-                        --sample-ploidy 2 \
-                        -L "$INTERVAL" \
-                        >> "$LOG" 2>&1
+                        --sample-ploidy 2 -L "$INTERVAL" >> "$CHUNK_LOG" 2>&1
                 fi
             fi
         ) &
@@ -171,7 +165,7 @@ for BAM in "${BAM_ARRAY[@]}"; do
         gatk --java-options "-Xmx16g" MergeVcfs \
             $CHUNK_FILES_ARGS \
             -O "$FINAL_GVCF" \
-            >> "$LOG" 2>&1
+            >> "$SAMPLE_LOG" 2>&1
         echo "[INFO] ${NAME}: chunks merged into final GVCF."
     else
         echo "[INFO] ${NAME}: final GVCF already exists."
@@ -189,16 +183,15 @@ done
 
 echo "[3/4] CombineGVCFs (Merging all samples)"
 COMBINED_GVCF="${OUTPREFIX}.combined.g.vcf.gz"
+GLOBAL_LOG="gatk_tmp/logs/joint_calling.log"
 
 if [ ! -f "$COMBINED_GVCF" ] || [ ! -f "${COMBINED_GVCF}.tbi" ]; then
     echo "[INFO] Merging sample GVCFs into one..."
-
     gatk --java-options "-Xmx64g" CombineGVCFs \
         -R "$REF" \
         "${ALL_SAMPLE_GVCFS[@]}" \
         -O "$COMBINED_GVCF" \
-        >> "$LOG" 2>&1
-
+        >> "$GLOBAL_LOG" 2>&1
     echo "[INFO] CombineGVCFs completed."
 else
     echo "[INFO] Combined GVCF already exists: $COMBINED_GVCF"
@@ -209,14 +202,12 @@ FINAL_VCF="${OUTPREFIX}.vcf.gz"
 
 if [ ! -f "$FINAL_VCF" ] || [ ! -f "${FINAL_VCF}.tbi" ]; then
     echo "[INFO] Genotyping..."
-
     gatk --java-options "-Xmx64g" GenotypeGVCFs \
         -R "$REF" \
         -V "$COMBINED_GVCF" \
         -O "$FINAL_VCF" \
         -G StandardAnnotation \
-        >> "$LOG" 2>&1
-
+        >> "$GLOBAL_LOG" 2>&1
     echo "[INFO] GenotypeGVCFs completed."
 else
     echo "[INFO] Final VCF already exists."
