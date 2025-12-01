@@ -25,6 +25,10 @@ source $(conda info --base)/etc/profile.d/conda.sh
 conda activate varcall
 
 echo "$(date) | VCF filtration"
+# QUAL < 20.0: Quality, Phred-scaled.
+# FORMAT/SP > 60.0: Strand Bias P-value.
+# FORMAT/DP < 5.0: Depth, Check depth in specific sample less than 5 reads.
+# FORMAT/GQ < 20.0: Genotype Quality.
 bcftools filter --threads 30 -S . -O z -o $PREFIX.filt.vcf.gz --exclude 'QUAL < 20.0 || (FORMAT/SP > 60.0 | FORMAT/DP < 5.0 | FORMAT/GQ < 20.0)' ../${VCF}
 
 echo "$(date) | VCF masking"
