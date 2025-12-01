@@ -81,10 +81,9 @@ for BAM in "${BAM_ARRAY[@]}"; do
         CHUNK_OUT="gatk_tmp/chunks/${NAME}.${ID}.g.vcf.gz"
         LOG="gatk_tmp/logs/${NAME}.${ID}.log"
 
-        # Collect arguments for future merging (-I file1 -I file2...)
+        # Collect arguments for future merging
         CHUNK_FILES_ARGS="${CHUNK_FILES_ARGS} -I $CHUNK_OUT"
 
-        # Check if chunk already exists
         if [ -f "$CHUNK_OUT" ] && [ -f "${CHUNK_OUT}.tbi" ]; then
             echo "[INFO] ${NAME}.${ID}: Chunk already exists."
             continue
@@ -96,28 +95,38 @@ for BAM in "${BAM_ARRAY[@]}"; do
                 P1="gatk_tmp/chunks/${NAME}.${ID}.p1.g.vcf.gz"
                 P2="gatk_tmp/chunks/${NAME}.${ID}.p2.g.vcf.gz"
 
-                # 1. Ploidy 1
-                # Check if INTERVAL intersects with HAPLOID_BED
-                HAS_HAPLOID=$(bedtools intersect -a <(grep -v "^@" "$INTERVAL") -b "$HAPLOID_BED")
-                if [ -n "$HAS_HAPLOID" ]; then # line is not empty
+                # Temp interval files for this chunk
+                P1_BED="gatk_tmp/intervals/${NAME}.${ID}.p1.bed"
+                P2_BED="gatk_tmp/intervals/${NAME}.${ID}.p2.bed"
+
+                # 1. Ploidy 1 (Intersection)
+                # Generate BED file intersection and save it
+                bedtools intersect -a <(grep -v "^@" "$INTERVAL") -b "$HAPLOID_BED" > "$P1_BED"
+
+                # Check if the file is not empty
+                if [ -s "$P1_BED" ]; then
                     if [ ! -f "$P1" ] || [ ! -f "${P1}.tbi" ]; then
+                        echo "${NAME}.${ID} | Ploidy 1 processing..."
                         gatk --java-options "-Xmx${JAVA_MEM}" HaplotypeCaller \
                             -R "$REF" -I "$BAM" -O "$P1" -ERC GVCF \
                             --sample-ploidy 1 \
-                            -L "$INTERVAL" -L "$HAPLOID_BED" \
+                            -L "$P1_BED" \
                             >> "$LOG" 2>&1
                     fi
                 fi
 
-                # 2. Ploidy 2
-                # Check if INTERVAL has regions outside HAPLOID_BED
-                HAS_DIPLOID=$(bedtools subtract -a <(grep -v "^@" "$INTERVAL") -b "$HAPLOID_BED")
-                if [ -n "$HAS_DIPLOID" ]; then # line is not empty
+                # 2. Ploidy 2 (Subtraction)
+                # Generate BED file subtraction and save it
+                bedtools subtract -a <(grep -v "^@" "$INTERVAL") -b "$HAPLOID_BED" > "$P2_BED"
+
+                # Check if the file is not empty
+                if [ -s "$P2_BED" ]; then
                     if [ ! -f "$P2" ] || [ ! -f "${P2}.tbi" ]; then
+                        echo "${NAME}.${ID} | Ploidy 2 processing..."
                         gatk --java-options "-Xmx${JAVA_MEM}" HaplotypeCaller \
                             -R "$REF" -I "$BAM" -O "$P2" -ERC GVCF \
                             --sample-ploidy 2 \
-                            -L "$INTERVAL" -XL "$HAPLOID_BED" \
+                            -L "$P2_BED" \
                             >> "$LOG" 2>&1
                     fi
                 fi
@@ -126,16 +135,11 @@ for BAM in "${BAM_ARRAY[@]}"; do
                 if [ ! -f "$CHUNK_OUT" ] || [ ! -f "${CHUNK_OUT}.tbi" ]; then
                     if [ -f "$P1" ] && [ -f "$P2" ]; then
                         gatk --java-options "-Xmx4g" CombineGVCFs \
-                            -R "$REF" \
-                            -V "$P1" -V "$P2" \
-                            -O "$CHUNK_OUT" \
-                            >> "$LOG" 2>&1
+                            -R "$REF" -V "$P1" -V "$P2" -O "$CHUNK_OUT" >> "$LOG" 2>&1
                     elif [ -f "$P1" ]; then
-                        cp "$P1" "$CHUNK_OUT"
-                        cp "${P1}.tbi" "${CHUNK_OUT}.tbi"
+                        cp "$P1" "$CHUNK_OUT" && cp "${P1}.tbi" "${CHUNK_OUT}.tbi"
                     elif [ -f "$P2" ]; then
-                        cp "$P2" "$CHUNK_OUT"
-                        cp "${P2}.tbi" "${CHUNK_OUT}.tbi"
+                        cp "$P2" "$CHUNK_OUT" && cp "${P2}.tbi" "${CHUNK_OUT}.tbi"
                     else
                         echo "[ERROR] No P1 or P2 produced for ${NAME}.${ID}" | tee -a "$LOG"
                         exit 1
@@ -144,7 +148,7 @@ for BAM in "${BAM_ARRAY[@]}"; do
 
                 # Cleanup
                 if [ -f "$CHUNK_OUT" ] && [ -f "${CHUNK_OUT}.tbi" ]; then
-                    rm -f "$P1"* "$P2"*
+                    rm -f "$P1"* "$P2"* "$P1_BED" "$P2_BED"
                 fi
 
             else
