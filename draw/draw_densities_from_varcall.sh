@@ -23,11 +23,11 @@ bcftools query -l ${FILT_MASK_VCF} | parallel -j $THREADS '
     $TOOLS/MACE/scripts/draw_variant_window_densities.py \
         -i ${SAMPLE}.${PREFIX}.filt.mask.snp.hetero.vcf.gz \
         -o ${SAMPLE}.${PREFIX}.filt.mask.snp.hetero.w1mb.s100kb \
+        -l "HeteroSNP densities for ${SAMPLE}" \
         --scaffold_ordered_list ${ASSEMBLY_BASEPATH}.orderlist \
         --scaffold_white_list ${ASSEMBLY_BASEPATH}.whitelist \
         --scaffold_length_file ${ASSEMBLY_BASEPATH}.len \
         --scaffold_syn_file ${ASSEMBLY_BASEPATH}.syn \
-        -l "HeteroSNP densities for ${SAMPLE}" \
         --density_thresholds 0,0.1,0.5,1,2,3,4,5,6,7 \
         -w 1000000 \
         -s 100000 \
@@ -39,11 +39,11 @@ bcftools query -l ${FILT_MASK_VCF} | parallel -j $THREADS '
     $TOOLS/MACE/scripts/draw_variant_window_densities.py \
         -i ${SAMPLE}.${PREFIX}.filt.mask.snp.homo.vcf.gz \
         -o ${SAMPLE}.${PREFIX}.filt.mask.snp.homo.w1mb.s100kb \
+        -l "HomoSNP densities for ${SAMPLE}" \
         --scaffold_ordered_list ${ASSEMBLY_BASEPATH}.orderlist \
         --scaffold_white_list ${ASSEMBLY_BASEPATH}.whitelist \
         --scaffold_length_file ${ASSEMBLY_BASEPATH}.len \
         --scaffold_syn_file ${ASSEMBLY_BASEPATH}.syn \
-        -l "HeteroSNP densities for ${SAMPLE}" \
         --density_thresholds 0,0.1,0.5,1,2,3,4,5,6,7 \
         -w 1000000 \
         -s 100000 \
