@@ -32,6 +32,8 @@ echo "Step 1: Marking variants with GATK Hard Filters"
 # FAIL_GT: DP < 5 || GQ < 20 - Low read depth or low genotype quality for a specific sample.
 # Note: Filtered variants and genotypes are marked as FAIL in the output VCF but are not removed.
 
+# --filter-expression "MQ < 40.0" --filter-name "MQ40" \
+
 gatk --java-options "-Xmx8g" VariantFiltration \
     -R ${ASSEMBLY} \
     -V ../${VCF} \
@@ -41,7 +43,6 @@ gatk --java-options "-Xmx8g" VariantFiltration \
     --filter-expression "SOR > 3.0" --filter-name "SOR3" \
     --filter-expression "vc.isSNP() && FS > 60.0" --filter-name "SNP_FS60" \
     --filter-expression "vc.isIndel() && FS > 200.0" --filter-name "INDEL_FS200" \
-    --filter-expression "MQ < 40.0" --filter-name "MQ40" \
     --genotype-filter-expression "DP < 5 || GQ < 20" \
     --genotype-filter-name "FAIL_GT"
 
