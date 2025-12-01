@@ -21,12 +21,12 @@ mkdir -p gatk_filtration/ROH/
 cd gatk_filtration/
 
 echo "Step 1: Marking variants with GATK Hard Filters"
-# QD < 2.0 - Low quality score normalized by depth.
-# QUAL < 30.0 - Low raw quality score of the variant.
-# SOR > 3.0 - High strand bias (variants supported by reads in only one direction).
-# FS > 60.0 for SNPs - Extreme strand bias specifically for SNPs.
-# FS > 200.0 for Indels - Extreme strand bias specifically for insertions/deletions.
-# MQ < 40.0 - Low mapping quality of the supporting reads.
+# QD < 2.0 - Low quality score normalized by depth. Помогает отсеять ложноположительные варианты, которые имеют высокий QUAL только из-за огромной глубины покрытия, но на самом деле плохи.
+# QUAL < 20.0 - Low raw quality score of the variant.
+# SOR > 3.0 - (Strand Odds Ratio) Strand bias score.
+# FS > 60.0 - Fisher Strand for SNPs - Extreme strand bias specifically for SNPs (Phred-scaled).
+# FS > 200.0 - Fisher Strand for Indels - Extreme strand bias specifically for insertions/deletions (Phred-scaled).
+# MQ < 40.0 - Mapping quality of the supporting reads.
 #
 # Genotype-Level Filter is applied to individual sample genotypes within a variant.
 # FAIL_GT: DP < 5 || GQ < 20 - Low read depth or low genotype quality for a specific sample.
@@ -37,7 +37,7 @@ gatk --java-options "-Xmx8g" VariantFiltration \
     -V ../${VCF} \
     -O ${PREFIX}.marked.vcf.gz \
     --filter-expression "QD < 2.0" --filter-name "QD2" \
-    --filter-expression "QUAL < 30.0" --filter-name "QUAL30" \
+    --filter-expression "QUAL < 20.0" --filter-name "QUAL20" \
     --filter-expression "SOR > 3.0" --filter-name "SOR3" \
     --filter-expression "vc.isSNP() && FS > 60.0" --filter-name "SNP_FS60" \
     --filter-expression "vc.isIndel() && FS > 200.0" --filter-name "INDEL_FS200" \
