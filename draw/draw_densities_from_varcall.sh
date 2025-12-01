@@ -3,11 +3,7 @@
 set -euo pipefail
 
 if [[ $# -lt 4 ]]; then
-    echo "Usage: $0 PREFIX ASSEMBLY TOOLS THREADS"
-    echo "  PREFIX: Base prefix for VCF files (e.g., my_vcf.filt.mask)"
-    echo "  ASSEMBLY: Absolute path to assembly files (e.g., /path/to/assembly_files/)"
-    echo "  TOOLS: Absolute path to the TOOLS directory (e.g., /path/to/TOOLS/)"
-    echo "  THREADS: Number of threads for parallel"
+    echo "Usage: $0 PREFIX ASSEMBLY_BASEPATH THREADS"
     exit 1
 fi
 
