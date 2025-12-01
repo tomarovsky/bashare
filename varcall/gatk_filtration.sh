@@ -33,12 +33,12 @@ echo "Step 1: Marking variants with GATK Hard Filters"
 # Note: Filtered variants and genotypes are marked as FAIL in the output VCF but are not removed.
 
 # --filter-expression "MQ < 40.0" --filter-name "MQ40" \
+# --filter-expression "QD < 2.0" --filter-name "QD2" \
 
 gatk --java-options "-Xmx8g" VariantFiltration \
     -R ${ASSEMBLY} \
     -V ../${VCF} \
     -O ${PREFIX}.marked.vcf.gz \
-    --filter-expression "QD < 2.0" --filter-name "QD2" \
     --filter-expression "QUAL < 20.0" --filter-name "QUAL20" \
     --filter-expression "SOR > 3.0" --filter-name "SOR3" \
     --filter-expression "vc.isSNP() && FS > 60.0" --filter-name "SNP_FS60" \
