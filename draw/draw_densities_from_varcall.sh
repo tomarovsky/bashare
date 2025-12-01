@@ -27,7 +27,7 @@ bcftools query -l ${FILT_MASK_VCF} | parallel -j $THREADS '
         --scaffold_white_list ${ASSEMBLY_BASEPATH}.whitelist \
         --scaffold_length_file ${ASSEMBLY_BASEPATH}.len \
         --scaffold_syn_file ${ASSEMBLY_BASEPATH}.syn \
-        --label "HeteroSNP densities for ${SAMPLE}" \
+        -l "HeteroSNP densities for ${SAMPLE}" \
         --density_thresholds 0,0.1,0.5,1,2,3,4,5,6,7 \
         -w 1000000 \
         -s 100000 \
@@ -43,7 +43,7 @@ bcftools query -l ${FILT_MASK_VCF} | parallel -j $THREADS '
         --scaffold_white_list ${ASSEMBLY_BASEPATH}.whitelist \
         --scaffold_length_file ${ASSEMBLY_BASEPATH}.len \
         --scaffold_syn_file ${ASSEMBLY_BASEPATH}.syn \
-        --label "HeteroSNP densities for ${SAMPLE}" \
+        -l "HeteroSNP densities for ${SAMPLE}" \
         --density_thresholds 0,0.1,0.5,1,2,3,4,5,6,7 \
         -w 1000000 \
         -s 100000 \
