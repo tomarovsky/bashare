@@ -104,9 +104,12 @@ for BAM in "${BAM_ARRAY[@]}"; do
                 P1_BED="gatk_tmp/intervals/${NAME}.${ID}.p1.bed"
                 P2_BED="gatk_tmp/intervals/${NAME}.${ID}.p2.bed"
 
-                # 1. Ploidy 1 (Intersection)
-                # Generate BED file intersection and save it
-                bedtools intersect -a <(grep -v "^@" "$INTERVAL") -b "$HAPLOID_BED" > "$P1_BED"
+                # Picard: chr start end
+                # BED:    chr start-1 end
+                awk -v OFS='\t' '!/^@/ {print $1, $2-1, $3}' "$INTERVAL" > "${INTERVAL}.temp.bed"
+
+                # 1. Ploidy 1 (Intersection with Haploid regions)
+                bedtools intersect -a "${INTERVAL}.temp.bed" -b "$HAPLOID_BED" > "$P1_BED"
                 if [ -s "$P1_BED" ]; then
                     if [ ! -f "$P1" ] || [ ! -f "${P1}.tbi" ]; then
                         echo "${NAME}.${ID} | Ploidy 1 processing..."
@@ -116,9 +119,8 @@ for BAM in "${BAM_ARRAY[@]}"; do
                     fi
                 fi
 
-                # 2. Ploidy 2 (Subtraction)
-                # Generate BED file subtraction and save it
-                bedtools subtract -a <(grep -v "^@" "$INTERVAL") -b "$HAPLOID_BED" > "$P2_BED"
+                # 2. Ploidy 2 (Subtraction of Haploid regions = Diploid/PAR)
+                bedtools subtract -a "${INTERVAL}.temp.bed" -b "$HAPLOID_BED" > "$P2_BED"
                 if [ -s "$P2_BED" ]; then
                     if [ ! -f "$P2" ] || [ ! -f "${P2}.tbi" ]; then
                         gatk --java-options "-Xmx${JAVA_MEM}" HaplotypeCaller \
@@ -144,7 +146,7 @@ for BAM in "${BAM_ARRAY[@]}"; do
 
                 # Cleanup temps
                 if [ -f "$CHUNK_OUT" ] && [ -f "${CHUNK_OUT}.tbi" ]; then
-                    rm -f "$P1"* "$P2"* "$P1_BED" "$P2_BED"
+                    rm -f "${INTERVAL}.temp.bed" "$P1_BED" "$P2_BED" "$P1" "$P1.tbi" "$P2" "$P2.tbi"
                 fi
 
             else
@@ -181,7 +183,7 @@ for BAM in "${BAM_ARRAY[@]}"; do
     echo "[INFO] $NAME Done."
 done
 
-echo "[3/4] CombineGVCFs (Merging all samples)"
+echo "[3/4] CombineGVCFs (Joint Genotyping step 1)"
 COMBINED_GVCF="${OUTPREFIX}.combined.g.vcf.gz"
 GLOBAL_LOG="gatk_tmp/logs/joint_calling.log"
 
