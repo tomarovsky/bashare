@@ -21,7 +21,6 @@ mkdir -p gatk_filtration/ROH/
 cd gatk_filtration/
 
 echo "Step 1: Marking variants with GATK Hard Filters"
-# QD < 2.0 - Low quality score normalized by depth.
 # QUAL < 20.0 - Low raw quality score of the variant.
 # SOR > 3.0 - (Strand Odds Ratio) Strand bias score.
 # FS > 60.0 - Fisher Strand for SNPs - Extreme strand bias specifically for SNPs (Phred-scaled).
@@ -36,7 +35,6 @@ gatk --java-options "-Xmx8g" VariantFiltration \
     -R ${ASSEMBLY} \
     -V ../${VCF} \
     -O ${PREFIX}.marked.vcf.gz \
-    --filter-expression "QD < 2.0" --filter-name "QD2" \
     --filter-expression "QUAL < 20.0" --filter-name "QUAL20" \
     --filter-expression "SOR > 3.0" --filter-name "SOR3" \
     --filter-expression "vc.isSNP() && FS > 60.0" --filter-name "SNP_FS60" \
