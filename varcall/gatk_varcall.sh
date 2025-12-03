@@ -37,10 +37,11 @@ if [[ ! -f "${REF%.*}.dict" ]]; then
 fi
 
 # ---- Directories ----
-mkdir -p gatk_tmp/intervals gatk_tmp/chunks gatk_tmp/logs gatk_tmp/gvcfs
+mkdir -p gatk_tmp/intervals gatk_tmp/chunks gatk_tmp/joint_chunks gatk_tmp/gvcfs gatk_tmp/logs
+
 
 # ---- SplitIntervals ----
-echo "[1/4] SplitIntervals"
+echo "[1/4] | $(date) | SplitIntervals"
 if [ -z "$(ls -A gatk_tmp/intervals 2>/dev/null)" ]; then
     gatk --java-options "-Xmx8g" SplitIntervals \
         -R "$REF" \
@@ -54,8 +55,9 @@ fi
 INTERVAL_FILES=(gatk_tmp/intervals/*.interval_list)
 ALL_SAMPLE_GVCFS=()
 
+
 # ---- BAM processing ----
-echo "[2/4] BAM processing..."
+echo "[2/4] | $(date) | BAM processing..."
 for BAM in "${BAM_ARRAY[@]}"; do
     NAME=$(basename "$BAM" | cut -d. -f1)
     FINAL_GVCF="gatk_tmp/gvcfs/${NAME}.g.vcf.gz"
@@ -183,34 +185,57 @@ for BAM in "${BAM_ARRAY[@]}"; do
     echo "[INFO] $NAME Done."
 done
 
-echo "[3/4] CombineGVCFs (Joint Genotyping step 1)"
-COMBINED_GVCF="${OUTPREFIX}.combined.g.vcf.gz"
-GLOBAL_LOG="gatk_tmp/logs/joint_calling.log"
 
-if [ ! -f "$COMBINED_GVCF" ] || [ ! -f "${COMBINED_GVCF}.tbi" ]; then
-    echo "[INFO] Merging sample GVCFs into one..."
-    gatk --java-options "-Xmx64g" CombineGVCFs \
-        -R "$REF" \
-        "${ALL_SAMPLE_GVCFS[@]}" \
-        -O "$COMBINED_GVCF" \
-        >> "$GLOBAL_LOG" 2>&1
-    echo "[INFO] CombineGVCFs completed."
-else
-    echo "[INFO] Combined GVCF already exists: $COMBINED_GVCF"
-fi
+echo "[3/4] | $(date) | Combine and Genotype..."
+GATHER_ARGS=""
+for i in "${!INTERVAL_FILES[@]}"; do
+    INTERVAL="${INTERVAL_FILES[$i]}"
+    ID=$(printf "%04d" $i) # 0001, 0002...
 
-echo "[4/4] GenotypeGVCFs"
+    CHUNK_COMBINED="gatk_tmp/joint_chunks/${OUTPREFIX}.${ID}.combined.g.vcf.gz"
+    CHUNK_FINAL="gatk_tmp/joint_chunks/${OUTPREFIX}.${ID}.vcf.gz"
+    CHUNK_LOG="gatk_tmp/logs/joint_call.${ID}.log"
+
+    # Save name of file for final GatherVcfs
+    GATHER_ARGS="${GATHER_ARGS} -I ${CHUNK_FINAL}"
+
+    (
+        # 1. CombineGVCFs (only for this interval)
+        if [ ! -f "$CHUNK_COMBINED" ] || [ ! -f "${CHUNK_COMBINED}.tbi" ]; then
+            gatk --java-options "-Xmx8g" CombineGVCFs \
+                -R "$REF" \
+                "${ALL_SAMPLE_GVCFS[@]}" \
+                -L "$INTERVAL" \
+                -O "$CHUNK_COMBINED" >> "$CHUNK_LOG" 2>&1
+        fi
+
+        # 2. GenotypeGVCFs (also only for the interval)
+        if [ ! -f "$CHUNK_FINAL" ] || [ ! -f "${CHUNK_FINAL}.tbi" ]; then
+            gatk --java-options "-Xmx8g" GenotypeGVCFs \
+                -R "$REF" \
+                -V "$CHUNK_COMBINED" \
+                -L "$INTERVAL" \
+                -O "$CHUNK_FINAL" \
+                -G StandardAnnotation >> "$CHUNK_LOG" 2>&1
+        fi
+
+        # rm -f "$CHUNK_COMBINED" "${CHUNK_COMBINED}.tbi"
+
+    ) &
+
+done
+
+wait
+
+echo "[4/4] | $(date) | Merging all chunks into final VCF..."
 FINAL_VCF="${OUTPREFIX}.vcf.gz"
 
 if [ ! -f "$FINAL_VCF" ] || [ ! -f "${FINAL_VCF}.tbi" ]; then
-    echo "[INFO] Genotyping..."
-    gatk --java-options "-Xmx64g" GenotypeGVCFs \
-        -R "$REF" \
-        -V "$COMBINED_GVCF" \
-        -O "$FINAL_VCF" \
-        -G StandardAnnotation \
-        >> "$GLOBAL_LOG" 2>&1
-    echo "[INFO] GenotypeGVCFs completed."
+    gatk --java-options "-Xmx8g" GatherVcfs \
+        $GATHER_ARGS \
+        -O "$FINAL_VCF"
+
+    gatk IndexFeatureFile -I "$FINAL_VCF"
 else
     echo "[INFO] Final VCF already exists."
 fi
