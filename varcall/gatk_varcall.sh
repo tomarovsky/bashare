@@ -170,7 +170,7 @@ for BAM in "${BAM_ARRAY[@]}"; do
             $CHUNK_FILES_ARGS \
             -O "$FINAL_GVCF" \
             >> "$SAMPLE_LOG" 2>&1
-        echo "[INFO] ${NAME}: chunks merged into final GVCF."
+        gatk IndexFeatureFile -I "$FINAL_GVCF"
     else
         echo "[INFO] ${NAME}: final GVCF already exists."
     fi
