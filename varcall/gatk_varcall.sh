@@ -166,7 +166,7 @@ for BAM in "${BAM_ARRAY[@]}"; do
 
     echo "[INFO] ${NAME}: merging chunks ..."
     if [ ! -f "$FINAL_GVCF" ] || [ ! -f "${FINAL_GVCF}.tbi" ]; then
-        gatk --java-options "-Xmx16g" MergeVcfs \
+        gatk --java-options "-Xmx16g" GatherVcfs \
             $CHUNK_FILES_ARGS \
             -O "$FINAL_GVCF" \
             >> "$SAMPLE_LOG" 2>&1
