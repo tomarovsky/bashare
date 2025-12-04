@@ -55,6 +55,15 @@ fi
 INTERVAL_FILES=(gatk_tmp/intervals/*.interval_list)
 ALL_SAMPLE_GVCFS=()
 
+# Pre-convert Intervals to BED
+echo "[INFO] Pre-converting intervals to BED..."
+for INTERVAL in "${INTERVAL_FILES[@]}"; do
+    if [ ! -f "${INTERVAL}.bed" ]; then
+        # Picard (1-based) to BED (0-based start)
+        awk -v OFS='\t' '!/^@/ {print $1, $2-1, $3}' "$INTERVAL" > "${INTERVAL}.bed"
+    fi
+done
+
 
 # ---- BAM processing ----
 echo "[2/4] | $(date) | BAM processing..."
@@ -82,6 +91,7 @@ for BAM in "${BAM_ARRAY[@]}"; do
 
     for i in "${!INTERVAL_FILES[@]}"; do
         INTERVAL="${INTERVAL_FILES[$i]}"
+        INTERVAL_BED="${INTERVAL}.bed"
         ID=$(printf "%04d" $i) # 0001, 0002...
 
         # Files for this chunk
@@ -106,12 +116,8 @@ for BAM in "${BAM_ARRAY[@]}"; do
                 P1_BED="gatk_tmp/intervals/${NAME}.${ID}.p1.bed"
                 P2_BED="gatk_tmp/intervals/${NAME}.${ID}.p2.bed"
 
-                # Picard: chr start end
-                # BED:    chr start-1 end
-                awk -v OFS='\t' '!/^@/ {print $1, $2-1, $3}' "$INTERVAL" > "${INTERVAL}.temp.bed"
-
                 # 1. Ploidy 1 (Intersection with Haploid regions)
-                bedtools intersect -a "${INTERVAL}.temp.bed" -b "$HAPLOID_BED" > "$P1_BED"
+                bedtools intersect -a "$INTERVAL_BED" -b "$HAPLOID_BED" > "$P1_BED"
                 if [ -s "$P1_BED" ]; then
                     if [ ! -f "$P1" ] || [ ! -f "${P1}.tbi" ]; then
                         echo "${NAME}.${ID} | Ploidy 1 processing..."
@@ -122,7 +128,7 @@ for BAM in "${BAM_ARRAY[@]}"; do
                 fi
 
                 # 2. Ploidy 2 (Subtraction of Haploid regions = Diploid/PAR)
-                bedtools subtract -a "${INTERVAL}.temp.bed" -b "$HAPLOID_BED" > "$P2_BED"
+                bedtools subtract -a "$INTERVAL_BED" -b "$HAPLOID_BED" > "$P2_BED"
                 if [ -s "$P2_BED" ]; then
                     if [ ! -f "$P2" ] || [ ! -f "${P2}.tbi" ]; then
                         gatk --java-options "-Xmx${JAVA_MEM}" HaplotypeCaller \
@@ -148,7 +154,7 @@ for BAM in "${BAM_ARRAY[@]}"; do
 
                 # Cleanup temps
                 if [ -f "$CHUNK_OUT" ] && [ -f "${CHUNK_OUT}.tbi" ]; then
-                    rm -f "${INTERVAL}.temp.bed" "$P1_BED" "$P2_BED" "$P1" "$P1.tbi" "$P2" "$P2.tbi"
+                    rm -f "$P1_BED" "$P2_BED" "$P1" "$P1.tbi" "$P2" "$P2.tbi"
                 fi
 
             else
@@ -164,13 +170,13 @@ for BAM in "${BAM_ARRAY[@]}"; do
 
     wait
 
-    echo "[INFO] ${NAME}: merging chunks ..."
+    echo "[INFO] ${NAME}: gathering chunks..."
     if [ ! -f "$FINAL_GVCF" ] || [ ! -f "${FINAL_GVCF}.tbi" ]; then
         gatk --java-options "-Xmx16g" GatherVcfs \
             $CHUNK_FILES_ARGS \
             -O "$FINAL_GVCF" \
             >> "$SAMPLE_LOG" 2>&1
-        gatk IndexFeatureFile -I "$FINAL_GVCF"
+        gatk IndexFeatureFile -I "$FINAL_GVCF" >> "$SAMPLE_LOG" 2>&1
     else
         echo "[INFO] ${NAME}: final GVCF already exists."
     fi
