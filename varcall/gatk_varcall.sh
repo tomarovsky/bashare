@@ -3,10 +3,10 @@
 set -euo pipefail
 
 SCATTER_COUNT=64
-JAVA_MEM="4g"
+JAVA_MEM="8g"
 
-# GATK
-export PATH=$(conda info --base)/envs/gatk/bin/:${TOOLS}/gatk-4.6.2.0/:${PATH}
+# GATK path
+export PATH=${TOOLS}/gatk-4.6.2.0/:${PATH}
 
 if [ "$#" -ne 5 ]; then
     echo "Usage: $0 genome.fasta <BAM_LIST_FILE> <MALES_LIST_FILE> haploid.bed outprefix"
@@ -40,7 +40,7 @@ fi
 mkdir -p gatk_tmp/intervals gatk_tmp/chunks gatk_tmp/joint_chunks gatk_tmp/gvcfs gatk_tmp/logs
 
 
-# ---- SplitIntervals ----
+# ---- 1/4 SplitIntervals ----
 echo "[1/4] | $(date) | SplitIntervals"
 if [ -z "$(ls -A gatk_tmp/intervals 2>/dev/null)" ]; then
     gatk --java-options "-Xmx8g" SplitIntervals \
@@ -55,8 +55,8 @@ fi
 INTERVAL_FILES=(gatk_tmp/intervals/*.interval_list)
 ALL_SAMPLE_GVCFS=""
 
-# Pre-convert Intervals to BED
-echo "[INFO] Pre-converting intervals to BED..."
+# Intervals to BED
+echo "[INFO] Converting intervals to BED..."
 for INTERVAL in "${INTERVAL_FILES[@]}"; do
     if [ ! -f "${INTERVAL}.bed" ]; then
         # Picard (1-based) to BED (0-based start)
@@ -65,7 +65,7 @@ for INTERVAL in "${INTERVAL_FILES[@]}"; do
 done
 
 
-# ---- BAM processing ----
+# ---- 2/4 BAM processing ----
 echo "[2/4] | $(date) | BAM processing..."
 for BAM in "${BAM_ARRAY[@]}"; do
     NAME=$(basename "$BAM" | cut -d. -f1)
@@ -108,7 +108,7 @@ for BAM in "${BAM_ARRAY[@]}"; do
 
         (
             if [ "$IS_MALE" = true ]; then
-                # === Logic for MALES ===
+                # ---- Logic for MALES ----
                 P1="gatk_tmp/chunks/${NAME}.${ID}.p1.g.vcf.gz"
                 P2="gatk_tmp/chunks/${NAME}.${ID}.p2.g.vcf.gz"
 
@@ -158,7 +158,7 @@ for BAM in "${BAM_ARRAY[@]}"; do
                 fi
 
             else
-                # === Logic for FEMALES ===
+                # ---- Logic for FEMALES ----
                 if [ ! -f "$CHUNK_OUT" ] || [ ! -f "${CHUNK_OUT}.tbi" ]; then
                     gatk --java-options "-Xmx${JAVA_MEM}" HaplotypeCaller \
                         -R "$REF" -I "$BAM" -O "$CHUNK_OUT" -ERC GVCF \
@@ -172,7 +172,7 @@ for BAM in "${BAM_ARRAY[@]}"; do
 
     echo "[INFO] ${NAME}: gathering chunks..."
     if [ ! -f "$FINAL_GVCF" ] || [ ! -f "${FINAL_GVCF}.tbi" ]; then
-        gatk --java-options "-Xmx16g" GatherVcfs \
+        gatk --java-options "-Xmx8g" GatherVcfs \
             ${CHUNK_FILES_ARGS} \
             -O "$FINAL_GVCF" \
             >> "$SAMPLE_LOG" 2>&1
@@ -192,6 +192,7 @@ for BAM in "${BAM_ARRAY[@]}"; do
 done
 
 
+# ---- 3/4 Combine and Genotype ----
 echo "[3/4] | $(date) | Combine and Genotype..."
 GATHER_ARGS=""
 for i in "${!INTERVAL_FILES[@]}"; do
@@ -206,7 +207,7 @@ for i in "${!INTERVAL_FILES[@]}"; do
     GATHER_ARGS="${GATHER_ARGS} -I ${CHUNK_FINAL}"
 
     (
-        # 1. CombineGVCFs (only for this interval)
+        # 1. CombineGVCFs
         if [ ! -f "$CHUNK_COMBINED" ] || [ ! -f "${CHUNK_COMBINED}.tbi" ]; then
             gatk --java-options "-Xmx8g" CombineGVCFs \
                 -R "$REF" \
@@ -215,7 +216,7 @@ for i in "${!INTERVAL_FILES[@]}"; do
                 -O "$CHUNK_COMBINED" >> "$CHUNK_LOG" 2>&1
         fi
 
-        # 2. GenotypeGVCFs (also only for the interval)
+        # 2. GenotypeGVCFs
         if [ ! -f "$CHUNK_FINAL" ] || [ ! -f "${CHUNK_FINAL}.tbi" ]; then
             gatk --java-options "-Xmx8g" GenotypeGVCFs \
                 -R "$REF" \
@@ -233,7 +234,9 @@ done
 
 wait
 
-echo "[4/4] | $(date) | Merging all chunks into final VCF..."
+
+# ---- 4/4 Gather all chunks into final VCF ----
+echo "[4/4] | $(date) | Gather all chunks into final VCF..."
 FINAL_VCF="${OUTPREFIX}.vcf.gz"
 
 if [ ! -f "$FINAL_VCF" ] || [ ! -f "${FINAL_VCF}.tbi" ]; then
@@ -246,4 +249,4 @@ else
     echo "[INFO] Final VCF already exists."
 fi
 
-echo "[INFO] Done! Result: $FINAL_VCF"
+echo "[INFO] | $(date) | Done! Result: $FINAL_VCF"
