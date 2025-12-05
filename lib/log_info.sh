@@ -57,13 +57,13 @@ log_message() {
 
 # --- Helper functions ---
 log_info() {
-    log_message INFO "$1" "$2"
+    log_message INFO "$1" "${2:-}"
 }
 
 log_warning() {
-    log_message WARNING "$1" "$2"
+    log_message WARNING "$1" "${2:-}"
 }
 
 log_error() {
-    log_message ERROR "$1" "$2"
+    log_message ERROR "$1" "${2:-}"
 }
