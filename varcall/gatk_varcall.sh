@@ -53,7 +53,7 @@ else
 fi
 
 INTERVAL_FILES=(gatk_tmp/intervals/*.interval_list)
-ALL_SAMPLE_GVCFS=""
+ALL_SAMPLE_GVCFS=()
 
 # Intervals to BED
 echo "[INFO] Converting intervals to BED..."
@@ -75,7 +75,7 @@ for BAM in "${BAM_ARRAY[@]}"; do
     # Skip if sample GVCF already exists
     if [ -f "$FINAL_GVCF" ] && [ -f "${FINAL_GVCF}.tbi" ]; then
         echo "[INFO] ${NAME}: GVCF already exists."
-        ALL_SAMPLE_GVCFS="${ALL_SAMPLE_GVCFS} -V ${FINAL_GVCF}"
+        ALL_SAMPLE_GVCFS+=("-V" "$FINAL_GVCF")
         continue
     fi
 
@@ -187,7 +187,7 @@ for BAM in "${BAM_ARRAY[@]}"; do
         echo "[INFO] ${NAME}: chunk files cleaned up."
     fi
 
-    ALL_SAMPLE_GVCFS="${ALL_SAMPLE_GVCFS} -V ${FINAL_GVCF}"
+    ALL_SAMPLE_GVCFS+=("-V" "$FINAL_GVCF")
     echo "[INFO] $NAME Done."
 done
 
@@ -211,7 +211,7 @@ for i in "${!INTERVAL_FILES[@]}"; do
         if [ ! -f "$CHUNK_COMBINED" ] || [ ! -f "${CHUNK_COMBINED}.tbi" ]; then
             gatk --java-options "-Xmx8g" CombineGVCFs \
                 -R "$REF" \
-                "${ALL_SAMPLE_GVCFS}" \
+                "${ALL_SAMPLE_GVCFS[@]}" \
                 -L "$INTERVAL" \
                 -O "$CHUNK_COMBINED" >> "$CHUNK_LOG" 2>&1
         fi
