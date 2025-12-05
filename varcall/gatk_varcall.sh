@@ -75,7 +75,7 @@ for BAM in "${BAM_ARRAY[@]}"; do
     # Skip if sample GVCF already exists
     if [ -f "$FINAL_GVCF" ] && [ -f "${FINAL_GVCF}.tbi" ]; then
         echo "[INFO] ${NAME}: GVCF already exists."
-        ALL_SAMPLE_GVCFS="${ALL_SAMPLE_GVCFS} -V ${FINAL_GVCF}"
+        ALL_SAMPLE_GVCFS="${ALL_SAMPLE_GVCFS} -I ${FINAL_GVCF}"
         continue
     fi
 
