@@ -216,6 +216,8 @@ for i in "${!INTERVAL_FILES[@]}"; do
                 -O "$CHUNK_COMBINED" >> "$CHUNK_LOG" 2>&1
         fi
 
+        sleep 10
+
         # 2. GenotypeGVCFs
         if [ ! -f "$CHUNK_FINAL" ] || [ ! -f "${CHUNK_FINAL}.tbi" ]; then
             gatk --java-options "-Xmx8g" GenotypeGVCFs \
