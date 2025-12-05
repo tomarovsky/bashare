@@ -15,12 +15,12 @@ C=$(wc -l < "${QFILES[0]}")                     # number of individuals == numbe
 K=$(head -1 "${QFILES[0]}" | awk '{print NF}')  # number of clusters == number of columns
 
 # Output files
-CLUMPP_INFILE="clumpp.indfile"
-CLUMPP_OUTFILE="clumpp.output"
-CLUMPP_MISCFILE="clumpp.log"
-CLUMPP_PARAMFILE="clumpp.paramfile"
-CLUMPP_PERMUTED_DATAFILE="clumpp.permutted.R"
-CLUMPP_OUTFILE_TSV="clumpp.output.tsv"
+CLUMPP_INFILE="clumpp.${K}.indfile"
+CLUMPP_OUTFILE="clumpp.${K}.output"
+CLUMPP_MISCFILE="clumpp.${K}.log"
+CLUMPP_PARAMFILE="clumpp.${K}.paramfile"
+CLUMPP_PERMUTED_DATAFILE="clumpp.${K}.permutted.R"
+CLUMPP_OUTFILE_TSV="clumpp.${K}.output.tsv"
 
 # 1. Generate clumpp.indfile
 > "$CLUMPP_INFILE"
