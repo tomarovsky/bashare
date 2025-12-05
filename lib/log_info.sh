@@ -39,7 +39,7 @@ log_message() {
             ;;
     esac
 
-    local timestamp=$(date +%Y-%m-%d\ %H:%M:%S)
+    local timestamp=$(date +%d-%m-%Y\ %H:%M:%S)
     local formatted_message="[${level}] | ${timestamp} | ${message}"
 
     # 2. Output to terminal
