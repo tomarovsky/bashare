@@ -2,6 +2,8 @@
 
 set -euo pipefail
 
+source "$TOOLS/bashare/lib/log_info.sh"
+
 # GATK
 export PATH=$(conda info --base)/envs/gatk/bin/:${TOOLS}/gatk-4.6.2.0/:${PATH}
 
@@ -20,7 +22,7 @@ export PREFIX=${VCF%.*.*}
 mkdir -p gatk_filtration/ROH/
 cd gatk_filtration/
 
-echo "Step 1: Marking variants with GATK Hard Filters"
+log_info "Step 1: Marking variants with GATK Hard Filters"
 # QUAL < 20.0 - Low raw quality score of the variant.
 # SOR > 3.0 - (Strand Odds Ratio) Strand bias score.
 # FS > 60.0 - Fisher Strand for SNPs - Extreme strand bias specifically for SNPs (Phred-scaled).
@@ -44,7 +46,7 @@ gatk --java-options "-Xmx8g" VariantFiltration \
     --genotype-filter-name "FAIL_GT"
 
 
-echo "$(date) | Step 2: Applying filters and Masking"
+log_info "Step 2: Applying filters and Masking"
 # --exclude-filtered: Remove sites that failed any filter
 # --exclude-intervals: Masking by BED
 # --set-filtered-gt-to-nocall: If one sample has DP < 5 (FAIL_GT),
@@ -58,7 +60,7 @@ gatk --java-options "-Xmx8g" SelectVariants \
     --exclude-filtered \
     --set-filtered-gt-to-nocall
 
-echo "$(date) | Step 3: Splitting samples"
+log_info "Step 3: Splitting samples"
 
 SAMPLES=$(bcftools query -l ${PREFIX}.filt.mask.vcf.gz)
 
@@ -95,4 +97,4 @@ export -f process_sample
 
 echo "$SAMPLES" | parallel -j $THREADS process_sample {}
 
-echo "$(date) | Done."
+log_info "Done!"
