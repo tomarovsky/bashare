@@ -187,7 +187,7 @@ for BAM in "${BAM_ARRAY[@]}"; do
         echo "[INFO] ${NAME}: chunk files cleaned up."
     fi
 
-    ALL_SAMPLE_GVCFS="${ALL_SAMPLE_GVCFS} -V ${FINAL_GVCF}"
+    ALL_SAMPLE_GVCFS="${ALL_SAMPLE_GVCFS} -I ${FINAL_GVCF}"
     echo "[INFO] $NAME Done."
 done
 
