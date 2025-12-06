@@ -32,11 +32,6 @@ log_message() {
             color="${RED}"
             output_stream="2"
             ;;
-        *)
-            color="${RED}"
-            level="FATAL" # If unknown level, consider it a fatal error
-            output_stream="2"
-            ;;
     esac
 
     local timestamp=$(date +%d-%m-%Y\ %H:%M:%S)
