@@ -1,13 +1,13 @@
 #!/bin/bash
 set -euo pipefail
 
-source "$TOOLS/bashare/lib/log_info.sh"
+source "$TOOLS/bashare/lib/log_functions.sh"
 
 # GATK
 export PATH=$(conda info --base)/envs/gatk/bin/:${TOOLS}/gatk-4.6.2.0/:${PATH}
 
 if [[ $# -lt 4 ]]; then
-    echo "Usage: $0 VCF MASK ASSEMBLY THREADS"
+    log_error "Usage: $0 VCF MASK ASSEMBLY THREADS"
     exit 1
 fi
 

@@ -1,6 +1,7 @@
 #!/bin/bash
-
 set -euo pipefail
+
+source "$TOOLS/bashare/lib/log_functions.sh"
 
 SCATTER_COUNT=64
 JAVA_MEM="8g"
@@ -9,9 +10,9 @@ JAVA_MEM="8g"
 export PATH=${TOOLS}/gatk-4.6.2.0/:${PATH}
 
 if [ "$#" -ne 5 ]; then
-    echo "Usage: $0 genome.fasta <BAM_LIST_FILE> <MALES_LIST_FILE> haploid.bed outprefix"
-    echo "  <BAM_LIST_FILE>: Path to a file containing one BAM path per line."
-    echo "  <MALES_LIST_FILE>: Path to a file containing one male sample ID path per line."
+    log_error "Usage: $0 genome.fasta <BAM_LIST_FILE> <MALES_LIST_FILE> haploid.bed outprefix"
+    log_error "  <BAM_LIST_FILE>: Path to a file containing one BAM path per line."
+    log_error "  <MALES_LIST_FILE>: Path to a file containing one male sample ID path per line."
     exit 1
 fi
 
@@ -22,8 +23,8 @@ HAPLOID_BED=$4
 OUTPREFIX=$5
 
 # Check dependencies
-command -v bedtools >/dev/null 2>&1 || { echo >&2 "[ERROR] bedtools not found in PATH."; exit 1; }
-command -v gatk >/dev/null 2>&1 || { echo >&2 "[ERROR] gatk not found in PATH."; exit 1; }
+command -v bedtools >/dev/null 2>&1 || { log_error "[ERROR] bedtools not found in PATH."; exit 1; }
+command -v gatk >/dev/null 2>&1 || { log_error "[ERROR] gatk not found in PATH."; exit 1; }
 
 if [ ! -f "$REF" ]; then echo "[ERROR] Reference file not found: $REF"; exit 1; fi
 if [ ! -f "$BAM_LIST_FILE" ]; then echo "[ERROR] BAM list file not found: $BAM_LIST_FILE"; exit 1; fi
@@ -41,22 +42,22 @@ mkdir -p gatk_tmp/intervals gatk_tmp/chunks gatk_tmp/joint_chunks gatk_tmp/gvcfs
 
 
 # ---- 1/4 SplitIntervals ----
-echo "[1/4] | $(date) | SplitIntervals"
+log_info "[1/4] SplitIntervals"
 if [ -z "$(ls -A gatk_tmp/intervals 2>/dev/null)" ]; then
     gatk --java-options "-Xmx8g" SplitIntervals \
         -R "$REF" \
         --scatter-count "$SCATTER_COUNT" \
         -O gatk_tmp/intervals
-    echo "[INFO] Intervals created."
+    log_info "Intervals created."
 else
-    echo "[INFO] Intervals already exist, using them."
+    log_info "Intervals already exist, using them."
 fi
 
 INTERVAL_FILES=(gatk_tmp/intervals/*.interval_list)
 ALL_SAMPLE_GVCFS=()
 
 # Intervals to BED
-echo "[INFO] Converting intervals to BED..."
+log_info "Converting intervals to BED..."
 for INTERVAL in "${INTERVAL_FILES[@]}"; do
     if [ ! -f "${INTERVAL}.bed" ]; then
         # Picard (1-based) to BED (0-based start)
@@ -66,7 +67,7 @@ done
 
 
 # ---- 2/4 BAM processing ----
-echo "[2/4] | $(date) | BAM processing..."
+log_info "[2/4] BAM processing..."
 for BAM in "${BAM_ARRAY[@]}"; do
     NAME=$(basename "$BAM" | cut -d. -f1)
     FINAL_GVCF="gatk_tmp/gvcfs/${NAME}.g.vcf.gz"
@@ -74,7 +75,7 @@ for BAM in "${BAM_ARRAY[@]}"; do
 
     # Skip if sample GVCF already exists
     if [ -f "$FINAL_GVCF" ] && [ -f "${FINAL_GVCF}.tbi" ]; then
-        echo "[INFO] ${NAME}: GVCF already exists."
+        log_info "${NAME}: GVCF already exists."
         ALL_SAMPLE_GVCFS+=("-V" "$FINAL_GVCF")
         continue
     fi
@@ -85,7 +86,7 @@ for BAM in "${BAM_ARRAY[@]}"; do
         if [[ "$M" == "$NAME" ]]; then IS_MALE=true; break; fi
     done
 
-    if [ "$IS_MALE" = true ]; then echo "[INFO] ${NAME}: MALE"; else echo "[INFO] ${NAME}: FEMALE"; fi
+    if [ "$IS_MALE" = true ]; then log_info "${NAME}: MALE"; else log_info "${NAME}: FEMALE"; fi
 
     CHUNK_FILES_ARGS=""
 
@@ -102,7 +103,7 @@ for BAM in "${BAM_ARRAY[@]}"; do
         CHUNK_FILES_ARGS="${CHUNK_FILES_ARGS} -I $CHUNK_OUT"
 
         if [ -f "$CHUNK_OUT" ] && [ -f "${CHUNK_OUT}.tbi" ]; then
-            echo "[INFO] ${NAME}.${ID}: Chunk already exists."
+            log_info "${NAME}.${ID}: Chunk already exists."
             continue
         fi
 
@@ -147,7 +148,7 @@ for BAM in "${BAM_ARRAY[@]}"; do
                     elif [ -f "$P2" ]; then
                         cp "$P2" "$CHUNK_OUT" && cp "${P2}.tbi" "${CHUNK_OUT}.tbi"
                     else
-                        echo "[ERROR] No P1 or P2 produced for ${NAME}.${ID}" >> "$CHUNK_LOG"
+                        log_error "No P1 or P2 produced for ${NAME}.${ID}" "$CHUNK_LOG"
                         exit 1
                     fi
                 fi
@@ -170,7 +171,7 @@ for BAM in "${BAM_ARRAY[@]}"; do
 
     wait
 
-    echo "[INFO] ${NAME}: gathering chunks..."
+    log_info "${NAME}: gathering chunks..."
     if [ ! -f "$FINAL_GVCF" ] || [ ! -f "${FINAL_GVCF}.tbi" ]; then
         gatk --java-options "-Xmx8g" GatherVcfs \
             ${CHUNK_FILES_ARGS} \
@@ -178,22 +179,22 @@ for BAM in "${BAM_ARRAY[@]}"; do
             >> "$SAMPLE_LOG" 2>&1
         gatk IndexFeatureFile -I "$FINAL_GVCF" >> "$SAMPLE_LOG" 2>&1
     else
-        echo "[INFO] ${NAME}: final GVCF already exists."
+        log_info "${NAME}: final GVCF already exists."
     fi
 
     # Cleanup chunks
     if [ -f "$FINAL_GVCF" ] && [ -f "${FINAL_GVCF}.tbi" ]; then
         rm -f gatk_tmp/chunks/${NAME}.*.g.vcf.gz*
-        echo "[INFO] ${NAME}: chunk files cleaned up."
+        log_info "${NAME}: chunk files cleaned up."
     fi
 
     ALL_SAMPLE_GVCFS+=("-V" "$FINAL_GVCF")
-    echo "[INFO] $NAME Done."
+    log_info "${NAME}: Done."
 done
 
 
 # ---- 3/4 Combine and Genotype ----
-echo "[3/4] | $(date) | Combine and Genotype..."
+log_info "[3/4] Combine and Genotype..."
 GATHER_ARGS=""
 for i in "${!INTERVAL_FILES[@]}"; do
     INTERVAL="${INTERVAL_FILES[$i]}"
@@ -228,8 +229,6 @@ for i in "${!INTERVAL_FILES[@]}"; do
 
         sleep 60
 
-        # rm -f "$CHUNK_COMBINED" "${CHUNK_COMBINED}.tbi"
-
     ) &
 
 done
@@ -238,7 +237,7 @@ wait
 
 
 # ---- 4/4 Gather all chunks into final VCF ----
-echo "[4/4] | $(date) | Gather all chunks into final VCF..."
+log_info "[4/4] Gather all chunks into final VCF..."
 FINAL_VCF="${OUTPREFIX}.vcf.gz"
 
 if [ ! -f "$FINAL_VCF" ] || [ ! -f "${FINAL_VCF}.tbi" ]; then
@@ -248,7 +247,7 @@ if [ ! -f "$FINAL_VCF" ] || [ ! -f "${FINAL_VCF}.tbi" ]; then
 
     gatk IndexFeatureFile -I "$FINAL_VCF"
 else
-    echo "[INFO] Final VCF already exists."
+    log_info "Final VCF already exists."
 fi
 
-echo "[INFO] | $(date) | Done! Result: $FINAL_VCF"
+log_info "Done! Result: $FINAL_VCF"

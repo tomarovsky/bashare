@@ -1,13 +1,12 @@
 #!/bin/bash
 set -euo pipefail
 
+source "$TOOLS/bashare/lib/log_functions.sh"
+
 if [ "$#" -ne 4 ]; then
-    echo "Usage: $0 VCF_FILE TRACK_FILE WHITELIST_FILE EXCLUDE_TRACK_CHR"
+    log_error "Usage: $0 VCF_FILE TRACK_FILE WHITELIST_FILE EXCLUDE_TRACK_CHR"
     exit 1
 fi
-
-source $(conda info --base)/etc/profile.d/conda.sh
-conda activate py38
 
 VCF_FILE=$1
 TRACK_FILE=$2

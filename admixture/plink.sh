@@ -1,22 +1,20 @@
 #!/bin/bash
-
 set -euo pipefail
+
+source "$TOOLS/bashare/lib/log_functions.sh"
 
 VCF=$1
 OUTPREFIX=$2
 LD=$3
 THREADS=$4
 
-GREEN='\033[0;32m'
-NC='\033[0m'
-
 if [[ $# -ne 4 ]]; then
-    echo "Usage: $0 VCF OUTPREFIX LD THREADS"
+    log_error "Usage: $0 VCF OUTPREFIX LD THREADS"
     exit 1
 fi
 
 # Step 1: geno and maf
-echo "${GREEN}[INFO] | $(date) | Step 1: geno and maf${NC}"
+log_info "Step 1: geno and maf"
 plink --vcf $VCF --out ${OUTPREFIX}.prefiltered \
     --double-id \
     --allow-extra-chr \
@@ -28,7 +26,7 @@ plink --vcf $VCF --out ${OUTPREFIX}.prefiltered \
     --threads $THREADS |& tee -a ${OUTPREFIX}.1.log
 
 # Step 2: Scaffold renaming
-echo "${GREEN}[INFO] | $(date) | Step 2: Renaming scaffolds to integers${NC}"
+log_info "Step 2: Renaming scaffolds to integers"
 
 cp ${OUTPREFIX}.prefiltered.bim ${OUTPREFIX}.prefiltered.bim.raw
 
@@ -50,7 +48,7 @@ BEGIN {
 }' ${OUTPREFIX}.prefiltered.bim.raw > ${OUTPREFIX}.prefiltered.bim
 
 # Step 3: LD pruning
-echo "${GREEN}[INFO] | $(date) | Step 3: LD pruning${NC}"
+log_info "Step 3: LD pruning"
 
 plink --bfile ${OUTPREFIX}.prefiltered --out ${OUTPREFIX} \
     --indep-pairwise 50 10 $LD \
@@ -58,7 +56,7 @@ plink --bfile ${OUTPREFIX}.prefiltered --out ${OUTPREFIX} \
     --threads $THREADS |& tee -a ${OUTPREFIX}.2.log
 
 # Step 4: PCA
-echo "${GREEN}[INFO] | $(date) | Step 4: PCA${NC}"
+log_info "Step 4: PCA"
 
 plink --bfile ${OUTPREFIX}.prefiltered --out ${OUTPREFIX} \
     --extract ${OUTPREFIX}.prune.in \
@@ -67,4 +65,4 @@ plink --bfile ${OUTPREFIX}.prefiltered --out ${OUTPREFIX} \
     --make-bed \
     --threads $THREADS |& tee -a ${OUTPREFIX}.3.log
 
-echo "${GREEN}[INFO] | $(date) | Done! ${NC}"
+log_info "Done!"
