@@ -4,7 +4,7 @@ set -euo pipefail
 source "$TOOLS/bashare/lib/log_functions.sh"
 
 SCATTER_COUNT=64
-JAVA_MEM="50g"
+JAVA_MEM="250g"
 
 # GATK path
 export PATH=${TOOLS}/gatk-4.6.2.0/:${PATH}
@@ -113,9 +113,9 @@ for i in "${!INTERVAL_FILES[@]}"; do
         P1_BED="gatk_tmp/intervals/${ID}.p1.bed"
         P2_BED="gatk_tmp/intervals/${ID}.p2.bed"
 
-        P1_VCF="gatk_tmp/chunks/${ID}.p1.vcf.gz"     # Merged (Male+Female) Haploid part
-        P1_M_VCF="gatk_tmp/chunks/${ID}.p1.m.vcf.gz" # Male Haploid part
-        P1_F_VCF="gatk_tmp/chunks/${ID}.p1.f.vcf.gz" # Female Haploid part
+        P1_VCF="gatk_tmp/chunks/${ID}.p1.vcf.gz"
+        P1_M_VCF="gatk_tmp/chunks/${ID}.p1.m.vcf.gz"
+        P1_F_VCF="gatk_tmp/chunks/${ID}.p1.f.vcf.gz"
 
         P2_VCF="gatk_tmp/chunks/${ID}.p2.vcf.gz"     # All Diploid part
 
