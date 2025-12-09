@@ -26,6 +26,7 @@ OUTPREFIX=$5
 command -v bedtools >/dev/null 2>&1 || { log_error "bedtools not found."; exit 1; }
 command -v gatk >/dev/null 2>&1 || { log_error "gatk not found."; exit 1; }
 command -v bcftools >/dev/null 2>&1 || { log_error "bcftools not found."; exit 1; }
+command -v samtools >/dev/null 2>&1 || { log_error "samtools not found."; exit 1; }
 
 if [ ! -f "$REF" ]; then log_error "Reference file not found: $REF"; exit 1; fi
 if [ ! -f "$BAM_LIST_FILE" ]; then log_error "BAM list file not found: $BAM_LIST_FILE"; exit 1; fi
@@ -69,6 +70,13 @@ log_info "Total BAMs: $((${#ALL_BAMS_ARGS[@]}/2))"
 log_info "Males: $((${#MALE_BAMS_ARGS[@]}/2))"
 log_info "Females: $((${#FEMALE_BAMS_ARGS[@]}/2))"
 
+# ---- Extract sample names from BAMs ----
+SAMPLE_ORDER=()
+for BAM in "${BAM_ARRAY[@]}"; do
+    SAMPLE=$(samtools view -H "$BAM" | grep "^@RG" | grep -o "SM:[^[:space:]]*" | cut -d: -f2 | head -n1)
+    SAMPLE_ORDER+=("$SAMPLE")
+done
+
 # ---- Directories ----
 mkdir -p gatk_tmp/intervals gatk_tmp/chunks gatk_tmp/logs
 
@@ -97,7 +105,7 @@ for i in "${!INTERVAL_FILES[@]}"; do
         awk -v OFS='\t' '!/^@/ {print $1, $2-1, $3}' "$INTERVAL" > "$INTERVAL_BED"
     fi
 
-    ID=$(printf "%04d" $i) # 0001, 0002...
+    ID=$(printf "%04d" $i) # 0000, 0001...
     CHUNK_FINAL="gatk_tmp/chunks/${OUTPREFIX}.${ID}.vcf.gz"
     CHUNK_LOG="gatk_tmp/logs/chunk.${ID}.log"
 
@@ -117,7 +125,7 @@ for i in "${!INTERVAL_FILES[@]}"; do
         P1_M_VCF="gatk_tmp/chunks/${ID}.p1.m.vcf.gz"
         P1_F_VCF="gatk_tmp/chunks/${ID}.p1.f.vcf.gz"
 
-        P2_VCF="gatk_tmp/chunks/${ID}.p2.vcf.gz"     # All Diploid part
+        P2_VCF="gatk_tmp/chunks/${ID}.p2.vcf.gz"
 
         # P1 (Ploidy 1 regions) = Intersection with Haploid BED
         bedtools intersect -a "$INTERVAL_BED" -b "$HAPLOID_BED" > "$P1_BED"
@@ -146,9 +154,11 @@ for i in "${!INTERVAL_FILES[@]}"; do
 
             # C. Merge Males and Females for P1
             if [ -f "$P1_M_VCF" ] && [ -f "$P1_F_VCF" ]; then
-                # Используем bcftools для слияния по самплам
-                bcftools merge -O z -o "$P1_VCF" "$P1_M_VCF" "$P1_F_VCF" >> "$CHUNK_LOG" 2>&1
-                tabix -p vcf "$P1_VCF"
+                # Merge VCFs
+                bcftools merge -O z -o "${P1_VCF%.vcf.gz}.unsorted.vcf.gz" "$P1_M_VCF" "$P1_F_VCF" >> "$CHUNK_LOG" 2>&1
+                # Sort samples
+                bcftools view -s <(printf "%s," "${SAMPLE_ORDER[@]}") -O z -o "$P1_VCF" "${P1_VCF%.vcf.gz}.unsorted.vcf.gz"
+                gatk IndexFeatureFile -I "$P1_VCF"
             elif [ -f "$P1_M_VCF" ]; then
                 mv "$P1_M_VCF" "$P1_VCF" && mv "${P1_M_VCF}.tbi" "${P1_VCF}.tbi"
             elif [ -f "$P1_F_VCF" ]; then
@@ -173,7 +183,7 @@ for i in "${!INTERVAL_FILES[@]}"; do
             fi
         fi
 
-        gatk --java-options "-Xmx4g" GatherVcfs \
+        gatk --java-options "-Xmx4g" MergeVcfs \
             "${LISTS_TO_MERGE[@]}" \
             -O "$CHUNK_FINAL" >> "$CHUNK_LOG" 2>&1
         gatk IndexFeatureFile -I "$CHUNK_FINAL" >> "$CHUNK_LOG" 2>&1
