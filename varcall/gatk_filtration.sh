@@ -7,7 +7,7 @@ source "$TOOLS/bashare/lib/log_functions.sh"
 export PATH=$(conda info --base)/envs/gatk/bin/:${TOOLS}/gatk-4.6.2.0/:${PATH}
 
 if [[ $# -lt 4 ]]; then
-    log_error "Usage: $0 VCF MASK ASSEMBLY THREADS"
+    echo "Usage: $0 VCF MASK ASSEMBLY THREADS"
     exit 1
 fi
 
@@ -22,27 +22,23 @@ mkdir -p gatk_filtration/ROH/
 cd gatk_filtration/
 
 log_info "Step 1: Marking variants with GATK Hard Filters"
-# QUAL < 20.0 - Low raw quality score of the variant.
+# QD < 2 - Variant confidence (from the QUAL field) divided by the unfiltered depth of non-hom-ref samples.
 # SOR > 3.0 - (Strand Odds Ratio) Strand bias score.
 # FS > 60.0 - Fisher Strand for SNPs - Extreme strand bias specifically for SNPs (Phred-scaled).
 # FS > 200.0 - Fisher Strand for Indels - Extreme strand bias specifically for insertions/deletions.
 # MQ < 40.0 - Mapping quality of the supporting reads.
 #
-# Genotype-Level Filter is applied to individual sample genotypes within a variant.
-# FAIL_GT: DP < 5 || GQ < 20 - Low read depth or low genotype quality for a specific sample.
 # Note: Filtered variants and genotypes are marked as FAIL in the output VCF but are not removed.
 
 gatk --java-options "-Xmx8g" VariantFiltration \
     -R ${ASSEMBLY} \
     -V ../${VCF} \
     -O ${PREFIX}.marked.vcf.gz \
-    --filter-expression "QUAL < 20.0" --filter-name "QUAL20" \
+    --filter-expression "QD < 2" --filter-name "QD20" \
     --filter-expression "SOR > 3.0" --filter-name "SOR3" \
     --filter-expression "vc.isSNP() && FS > 60.0" --filter-name "SNP_FS60" \
     --filter-expression "vc.isIndel() && FS > 200.0" --filter-name "INDEL_FS200" \
-    --filter-expression "MQ < 40.0" --filter-name "MQ40" \
-    --genotype-filter-expression "DP < 5 || GQ < 20" \
-    --genotype-filter-name "FAIL_GT"
+    --filter-expression "MQ < 40.0" --filter-name "MQ40"
 
 
 log_info "Step 2: Applying filters and Masking"
