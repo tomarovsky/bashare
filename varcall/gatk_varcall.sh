@@ -4,7 +4,7 @@ set -euo pipefail
 source "$TOOLS/bashare/lib/log_functions.sh"
 
 SCATTER_COUNT=64
-JAVA_MEM="8g"
+JAVA_MEM="50g"
 
 # GATK path
 export PATH=${TOOLS}/gatk-4.6.2.0/:${PATH}
