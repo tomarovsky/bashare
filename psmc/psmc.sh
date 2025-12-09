@@ -3,6 +3,8 @@
 # mamba create -n PSMC -c bioconda -c conda-forge -c mahajrod routoolpa mace mavr parallel gnuplot samtools=0.1.19
 # export PATH="${TOOLS}/psmc:${TOOLS}/psmc/utils:${TOOLS}/bedtools-2.31.1/bin:${TOOLS}/htslib-1.22.1/bin:${TOOLS}/Biocrutch/scripts/psmc/:${PATH}"
 
+source "$TOOLS/bashare/lib/log_functions.sh"
+
 ASSEMBLY=""
 BAM_FILE=""
 VCF_FILE=""
@@ -71,7 +73,7 @@ done
 
 # --- Check for required arguments ---
 if [ -z "$BAM_FILE" ] && [ -z "$VCF_FILE" ] && [ -z "$UNMASKED_FQ" ]; then
-    echo "Error: Missing required argument. You must provide either -b (BAM), -v (VCF) or -q (unmasked FQ)."
+    log_error "Missing required argument. You must provide either -b (BAM), -v (VCF) or -q (unmasked FQ)."
     print_usage
     exit 1
 fi
@@ -83,13 +85,13 @@ input_count=0
 [ -n "$UNMASKED_FQ" ] && input_count=$((input_count + 1))
 
 if [ $input_count -gt 1 ]; then
-    echo "Error: Conflicting arguments. You can only provide one of -b (BAM), -v (VCF) or -q (unmasked FQ)."
+    log_error "Conflicting arguments. You can only provide one of -b (BAM), -v (VCF) or -q (unmasked FQ)."
     print_usage
     exit 1
 fi
 
 if [ -z "$ASSEMBLY" ] || [ -z "$STATS_FILE" ] || [ -z "$GEN_TIME" ] || [ -z "$MU_RATE" ] || [ -z "$CHRX_ID" ]; then
-    echo "Error: Missing one or more required arguments (-f, -w, -g, -u, -c)."
+    log_error "Missing one or more required arguments (-f, -w, -g, -u, -c)."
     print_usage
     exit 1
 fi
@@ -112,136 +114,136 @@ NO_CHRX_DIR="${WORKDIR}/no_ChrX/${SAMPLE}"
 mkdir -p "${ALL_CHR_DIR}"
 mkdir -p "${NO_CHRX_DIR}"
 
-echo "$(date) | Working directory: ${WORKDIR}"
-echo "$(date) | Sample: ${SAMPLE}"
-echo "$(date) | Mask file: ${MASK_FILE:-Not provided, skipping masking}"
+log_info "Working directory: ${WORKDIR}"
+log_info "Sample: ${SAMPLE}"
+log_info "Mask file: ${MASK_FILE:-Not provided, skipping masking}"
 
 if [ -n "$BAM_FILE" ]; then
     # Variant Calling and VCF/FQ creation (all chromosomes)
-    echo "$(date) | ${SAMPLE} | Variant calling from BAM"
+    log_info "${SAMPLE} | Variant calling from BAM"
     mkdir -p "${ALL_CHR_DIR}/split/bcf"
 
     prepare_region_list.py -r "${ASSEMBLY}.fai" -s -m 1500000 -n 1 -g samtools -x 1000 2>/dev/null | \
         parallel -j "${THREADS}" "samtools mpileup -C50 -uf ${ASSEMBLY} -r {} ${BAM_FILE} 2>/dev/null | bcftools view -b -c - > ${ALL_CHR_DIR}/split/bcf/tmp.{#}.bcf"
 
-    echo "$(date) | ${SAMPLE} | BCF -> VCF"
+    log_info "${SAMPLE} | BCF -> VCF"
     bcftools cat $(ls ${ALL_CHR_DIR}/split/bcf/tmp.*.bcf | sort -V) | bcftools view - | gzip > "${ALL_CHR_DIR}/${SAMPLE}.vcf.gz"
     rm -r "${ALL_CHR_DIR}/split" # Remove split dir after use
 
     if $STOP_AFTER_VCF; then
-        echo "$(date) | ${SAMPLE} | VCF file created: ${ALL_CHR_DIR}/${SAMPLE}.vcf.gz"
-        echo "$(date) | STOPPING as requested by -x flag"
+        log_info "${SAMPLE} | VCF file created: ${ALL_CHR_DIR}/${SAMPLE}.vcf.gz"
+        log_info "STOPPING as requested by -x flag"
         exit 0
     fi
 
     # -D and -d parameters from whole genome stats file
     MIN_DEPTH=$(awk 'NR==2{printf "%.0f", $2/3}' "${STATS_FILE}")   # Minimum (33% of median)
     MAX_DEPTH=$(awk 'NR==2{printf "%.0f", $2*2.5}' "${STATS_FILE}") # Maximum (250% of median)
-    echo "$(date) | Consensus file | -d:${MIN_DEPTH} -D:${MAX_DEPTH}"
+    log_info "Consensus file | -d:${MIN_DEPTH} -D:${MAX_DEPTH}"
     zcat "${ALL_CHR_DIR}/${SAMPLE}.vcf.gz" | vcfutils.pl vcf2fq -d "${MIN_DEPTH}" -D "${MAX_DEPTH}" | gzip > "${ALL_CHR_DIR}/${SAMPLE}.fq.gz"
 
 elif [ -n "$VCF_FILE" ]; then
-    echo "$(date) | ${SAMPLE} | Using provided VCF file: ${VCF_FILE}"
+    log_info "${SAMPLE} | Using provided VCF file: ${VCF_FILE}"
 
     ln -s "$(realpath ${VCF_FILE})" "${ALL_CHR_DIR}/${SAMPLE}.vcf.gz"
 
-    echo "$(date) | ${SAMPLE} | Created symlink: $(realpath ${VCF_FILE}) -> ${ALL_CHR_DIR}/${SAMPLE}.vcf.gz"
+    log_info "${SAMPLE} | Created symlink: $(realpath ${VCF_FILE}) -> ${ALL_CHR_DIR}/${SAMPLE}.vcf.gz"
 
     # -D and -d parameters from whole genome stats file
     MIN_DEPTH=$(awk 'NR==2{printf "%.0f", $2/3}' "${STATS_FILE}")   # Minimum (33% of median)
     MAX_DEPTH=$(awk 'NR==2{printf "%.0f", $2*2.5}' "${STATS_FILE}") # Maximum (250% of median)
-    echo "$(date) | Consensus file | -d:${MIN_DEPTH} -D:${MAX_DEPTH}"
+    log_info "Consensus file | -d:${MIN_DEPTH} -D:${MAX_DEPTH}"
     zcat "${ALL_CHR_DIR}/${SAMPLE}.vcf.gz" | vcfutils.pl vcf2fq -d "${MIN_DEPTH}" -D "${MAX_DEPTH}" | gzip > "${ALL_CHR_DIR}/${SAMPLE}.fq.gz"
 
 elif [ -n "$UNMASKED_FQ" ]; then
-    echo "$(date) | ${SAMPLE} | Using provided unmasked FQ file: ${UNMASKED_FQ}"
+    log_info "${SAMPLE} | Using provided unmasked FQ file: ${UNMASKED_FQ}"
 
     # Create symlink to the provided unmasked FQ file
     ln -s "$(realpath ${UNMASKED_FQ})" "${ALL_CHR_DIR}/${SAMPLE}.fq.gz"
 
-    echo "$(date) | ${SAMPLE} | Created symlink: $(realpath ${UNMASKED_FQ}) -> ${ALL_CHR_DIR}/${SAMPLE}.fq.gz"
+    log_info "${SAMPLE} | Created symlink: $(realpath ${UNMASKED_FQ}) -> ${ALL_CHR_DIR}/${SAMPLE}.fq.gz"
 fi
 
 # Masking (optional)
 if [ -n "$MASK_FILE" ]; then
-    echo "$(date) | ${SAMPLE} | Consensus masking"
+    log_info "${SAMPLE} | Consensus masking"
     mask_consensus.py -i "${ALL_CHR_DIR}/${SAMPLE}.fq.gz" -m "${MASK_FILE}" -o "${ALL_CHR_DIR}/${SAMPLE}.masked.fq.gz"
     FQ_FOR_PSMC="${ALL_CHR_DIR}/${SAMPLE}.masked.fq.gz"
-    echo "$(date) | ${SAMPLE} | Masked FQ file prepared: ${FQ_FOR_PSMC}"
+    log_info "${SAMPLE} | Masked FQ file prepared: ${FQ_FOR_PSMC}"
 else
     FQ_FOR_PSMC="${ALL_CHR_DIR}/${SAMPLE}.fq.gz"
-    echo "$(date) | ${SAMPLE} | No mask file provided, using unmasked consensus: ${FQ_FOR_PSMC}"
+    log_info "${SAMPLE} | No mask file provided, using unmasked consensus: ${FQ_FOR_PSMC}"
 fi
 
 # PSMC (all chromosomes)
-echo "$(date) | ${SAMPLE} | Fasta-like consensus file preparation";
+log_info "${SAMPLE} | Fasta-like consensus file preparation";
 fq2psmcfa -q20 "${FQ_FOR_PSMC}" > "${ALL_CHR_DIR}/${SAMPLE}.diploid.psmcfa"
 
-echo "$(date) | ${SAMPLE} | PSMC calculation";
+log_info "${SAMPLE} | PSMC calculation";
 psmc -N"${N_PSMC}" -t"${T_PSMC}" -r"${R_PSMC}" -p "${PATTERN}" -o "${ALL_CHR_DIR}/${SAMPLE}.diploid.psmc" "${ALL_CHR_DIR}/${SAMPLE}.diploid.psmcfa"
 
-echo "$(date) | ${SAMPLE} | PSMC plot";
+log_info "${SAMPLE} | PSMC plot";
 psmc_plot.pl -u "${MU_RATE}" -g "${GEN_TIME}" -R "${ALL_CHR_DIR}/${SAMPLE}.G${GEN_TIME}_U${MU_RATE}.diploid" "${ALL_CHR_DIR}/${SAMPLE}.diploid.psmc"
 mv ${ALL_CHR_DIR}/${SAMPLE}.G${GEN_TIME}_U${MU_RATE}.diploid.0.txt ${ALL_CHR_DIR}/${SAMPLE}.G${GEN_TIME}_U${MU_RATE}.diploid.txt
 rm ${ALL_CHR_DIR}/${SAMPLE}.G${GEN_TIME}_U${MU_RATE}.diploid.{eps,gp,par}
 
 # Bootstrapping (optional)
 if $ROUNDS; then
-    echo "$(date) | ${SAMPLE} | Fasta-like consensus file preparation for bootstrapping";
+    log_info "${SAMPLE} | Fasta-like consensus file preparation for bootstrapping";
     splitfa "${ALL_CHR_DIR}/${SAMPLE}.diploid.psmcfa" > "${ALL_CHR_DIR}/${SAMPLE}.diploid.split.psmcfa"
-    echo "$(date) | ${SAMPLE} | PSMC 100 bootstrapping"
+    log_info "${SAMPLE} | PSMC 100 bootstrapping"
     seq 100 | xargs -I{} echo "psmc -N${N_PSMC} -t${T_PSMC} -r${R_PSMC} -b -p \"${PATTERN}\" -o ${ALL_CHR_DIR}/round-{}.psmc ${ALL_CHR_DIR}/${SAMPLE}.diploid.split.psmcfa" > "${ALL_CHR_DIR}/seq100.txt"
     parallel -j "${THREADS}" < "${ALL_CHR_DIR}/seq100.txt"
     cat ${ALL_CHR_DIR}/round-*.psmc > "${ALL_CHR_DIR}/${SAMPLE}.round.psmc"
     rm ${ALL_CHR_DIR}/round-*.psmc
     rm ${ALL_CHR_DIR}/seq100.txt
 
-    echo "$(date) | ${SAMPLE} | PSMC bootstrap plot";
+    log_info "${SAMPLE} | PSMC bootstrap plot";
     psmc_plot.pl -u "${MU_RATE}" -g "${GEN_TIME}" -R "${ALL_CHR_DIR}/round" "${ALL_CHR_DIR}/${SAMPLE}.round.psmc"
     cat ${ALL_CHR_DIR}/round-*.txt > "${ALL_CHR_DIR}/${SAMPLE}.G${GEN_TIME}_U${MU_RATE}.round.txt"
     rm ${ALL_CHR_DIR}/round-*.txt
 fi
 
 # PSMC excluding ChrX
-echo "$(date) | ${SAMPLE} | Removing ${CHRX_ID}"
+log_info "${SAMPLE} | Removing ${CHRX_ID}"
 if [ -n "$MASK_FILE" ]; then
     # Use masked file if masking was performed
     INPUT_FQ="${ALL_CHR_DIR}/${SAMPLE}.masked.fq.gz"
-    echo "$(date) | Use masked FQ: ${INPUT_FQ}"
+    log_info "Use masked FQ: ${INPUT_FQ}"
 else
     # Use unmasked file if no masking
     INPUT_FQ="${ALL_CHR_DIR}/${SAMPLE}.fq.gz"
-    echo "$(date) | Use UNmasked FQ: ${INPUT_FQ}"
+    log_info "Use UNmasked FQ: ${INPUT_FQ}"
 fi
 
 consensus_remove_scaffold.py -i "${INPUT_FQ}" -o "${NO_CHRX_DIR}/${SAMPLE}.no_ChrX.fq.gz" -s "${CHRX_ID}"
 
-echo "$(date) | ${SAMPLE} | Fasta-like consensus file preparation";
+log_info "${SAMPLE} | Fasta-like consensus file preparation"
 fq2psmcfa -q20 "${NO_CHRX_DIR}/${SAMPLE}.no_ChrX.fq.gz" > "${NO_CHRX_DIR}/${SAMPLE}.no_ChrX.diploid.psmcfa"
 
-echo "$(date) | ${SAMPLE} | PSMC calculation";
+log_info "${SAMPLE} | PSMC calculation"
 psmc -N"${N_PSMC}" -t"${T_PSMC}" -r"${R_PSMC}" -p "${PATTERN}" -o "${NO_CHRX_DIR}/${SAMPLE}.no_ChrX.diploid.psmc" "${NO_CHRX_DIR}/${SAMPLE}.no_ChrX.diploid.psmcfa"
 
-echo "$(date) | ${SAMPLE} | PSMC plot";
+log_info "${SAMPLE} | PSMC plot"
 psmc_plot.pl -u "${MU_RATE}" -g "${GEN_TIME}" -R "${NO_CHRX_DIR}/${SAMPLE}.G${GEN_TIME}_U${MU_RATE}.no_ChrX.diploid" "${NO_CHRX_DIR}/${SAMPLE}.no_ChrX.diploid.psmc"
 mv ${NO_CHRX_DIR}/${SAMPLE}.G${GEN_TIME}_U${MU_RATE}.no_ChrX.diploid.0.txt ${NO_CHRX_DIR}/${SAMPLE}.G${GEN_TIME}_U${MU_RATE}.no_ChrX.diploid.txt
 rm ${NO_CHRX_DIR}/${SAMPLE}.G${GEN_TIME}_U${MU_RATE}.no_ChrX.diploid.{eps,gp,par}
 
 # Bootstrapping (optional)
 if $ROUNDS; then
-    echo "$(date) | ${SAMPLE} | Fasta-like consensus file preparation for bootstrapping";
+    log_info "${SAMPLE} | Fasta-like consensus file preparation for bootstrapping";
     splitfa "${NO_CHRX_DIR}/${SAMPLE}.no_ChrX.diploid.psmcfa" > "${NO_CHRX_DIR}/${SAMPLE}.no_ChrX.diploid.split.psmcfa"
-    echo "$(date) | ${SAMPLE} | PSMC 100 bootstrapping"
+    log_info "${SAMPLE} | PSMC 100 bootstrapping"
     seq 100 | xargs -I{} echo "psmc -N${N_PSMC} -t${T_PSMC} -r${R_PSMC} -b -p '${PATTERN}' -o ${NO_CHRX_DIR}/round-{}.psmc ${NO_CHRX_DIR}/${SAMPLE}.no_ChrX.diploid.split.psmcfa" > "${NO_CHRX_DIR}/seq100.txt"
     parallel -j "${THREADS}" < "${NO_CHRX_DIR}/seq100.txt"
     cat ${NO_CHRX_DIR}/round-*.psmc > "${NO_CHRX_DIR}/${SAMPLE}.no_ChrX.round.psmc"
     rm ${NO_CHRX_DIR}/round-*.psmc
     rm ${NO_CHRX_DIR}/seq100.txt
 
-    echo "$(date) | ${SAMPLE} | PSMC bootstrap plot";
+    log_info "${SAMPLE} | PSMC bootstrap plot";
     psmc_plot.pl -u "${MU_RATE}" -g "${GEN_TIME}" -R "${NO_CHRX_DIR}/round" "${NO_CHRX_DIR}/${SAMPLE}.no_ChrX.round.psmc"
     cat ${NO_CHRX_DIR}/round.*.txt > "${NO_CHRX_DIR}/${SAMPLE}.G${GEN_TIME}_U${MU_RATE}.no_ChrX.round.txt"
     rm ${NO_CHRX_DIR}/round.*.txt
 fi
 
-echo "$(date) | DONE | ${SAMPLE} | Gen=${GEN_TIME} | Mu=${MU_RATE} | Masking=$([ -n "$MASK_FILE" ] && echo Yes || echo No) | Rounds=${ROUNDS}"
+log_info "$(date) | DONE | ${SAMPLE} | Gen=${GEN_TIME} | Mu=${MU_RATE} | Masking=$([ -n "$MASK_FILE" ] && echo Yes || echo No) | Rounds=${ROUNDS}"
