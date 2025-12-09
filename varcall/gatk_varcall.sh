@@ -23,211 +23,162 @@ HAPLOID_BED=$4
 OUTPREFIX=$5
 
 # Check dependencies
-command -v bedtools >/dev/null 2>&1 || { log_error "[ERROR] bedtools not found in PATH."; exit 1; }
-command -v gatk >/dev/null 2>&1 || { log_error "[ERROR] gatk not found in PATH."; exit 1; }
+command -v bedtools >/dev/null 2>&1 || { log_error "bedtools not found."; exit 1; }
+command -v gatk >/dev/null 2>&1 || { log_error "gatk not found."; exit 1; }
+command -v bcftools >/dev/null 2>&1 || { log_error "bcftools not found."; exit 1; }
 
-if [ ! -f "$REF" ]; then echo "[ERROR] Reference file not found: $REF"; exit 1; fi
-if [ ! -f "$BAM_LIST_FILE" ]; then echo "[ERROR] BAM list file not found: $BAM_LIST_FILE"; exit 1; fi
-if [ ! -f "$HAPLOID_BED" ]; then echo "[ERROR] Haploid BED file not found: $HAPLOID_BED"; exit 1; fi
-
-mapfile -t BAM_ARRAY < <(grep -v '^[[:space:]]*$' "$BAM_LIST_FILE")
-mapfile -t MALES_ARRAY < <(grep -v '^[[:space:]]*$' "$MALES_LIST_FILE")
+if [ ! -f "$REF" ]; then log_error "Reference file not found: $REF"; exit 1; fi
+if [ ! -f "$BAM_LIST_FILE" ]; then log_error "BAM list file not found: $BAM_LIST_FILE"; exit 1; fi
+if [ ! -f "$HAPLOID_BED" ]; then log_error "Haploid BED file not found: $HAPLOID_BED"; exit 1; fi
 
 if [[ ! -f "${REF%.*}.dict" ]]; then
-    picard CreateSequenceDictionary -R "$REF"
+    gatk CreateSequenceDictionary -R "$REF"
 fi
 
+# ---- 0. Prepare BAM file lists ----
+log_info "Categorizing BAM files..."
+
+# Males list into array
+declare -A MALES_MAP
+while read -r line; do
+    [[ -z "$line" ]] && continue
+    MALES_MAP["$line"]=1
+done < "$MALES_LIST_FILE"
+
+# Declare arrays
+ALL_BAMS_ARGS=()
+MALE_BAMS_ARGS=()
+FEMALE_BAMS_ARGS=()
+
+mapfile -t BAM_ARRAY < <(grep -v '^[[:space:]]*$' "$BAM_LIST_FILE")
+
+for BAM in "${BAM_ARRAY[@]}"; do
+    NAME=$(basename "$BAM" | cut -d. -f1)
+
+    ALL_BAMS_ARGS+=("-I" "$BAM")
+
+    # Check sex
+    if [[ -n "${MALES_MAP[$NAME]-}" ]]; then
+        MALE_BAMS_ARGS+=("-I" "$BAM")
+    else
+        FEMALE_BAMS_ARGS+=("-I" "$BAM")
+    fi
+done
+
+log_info "Total BAMs: $((${#ALL_BAMS_ARGS[@]}/2))"
+log_info "Males: $((${#MALE_BAMS_ARGS[@]}/2))"
+log_info "Females: $((${#FEMALE_BAMS_ARGS[@]}/2))"
+
 # ---- Directories ----
-mkdir -p gatk_tmp/intervals gatk_tmp/chunks gatk_tmp/joint_chunks gatk_tmp/gvcfs gatk_tmp/logs
+mkdir -p gatk_tmp/intervals gatk_tmp/chunks gatk_tmp/logs
 
-
-# ---- 1/4 SplitIntervals ----
-log_info "[1/4] SplitIntervals"
+# ---- 1. SplitIntervals ----
+log_info "[1/3] SplitIntervals"
 if [ -z "$(ls -A gatk_tmp/intervals 2>/dev/null)" ]; then
-    gatk --java-options "-Xmx8g" SplitIntervals \
+    gatk --java-options "-Xmx4g" SplitIntervals \
         -R "$REF" \
         --scatter-count "$SCATTER_COUNT" \
         -O gatk_tmp/intervals
-    log_info "Intervals created."
 else
-    log_info "Intervals already exist, using them."
+    log_info "Intervals already exist."
 fi
 
 INTERVAL_FILES=(gatk_tmp/intervals/*.interval_list)
-ALL_SAMPLE_GVCFS=()
 
-# Intervals to BED
-log_info "Converting intervals to BED..."
-for INTERVAL in "${INTERVAL_FILES[@]}"; do
-    if [ ! -f "${INTERVAL}.bed" ]; then
-        # Picard (1-based) to BED (0-based start)
-        awk -v OFS='\t' '!/^@/ {print $1, $2-1, $3}' "$INTERVAL" > "${INTERVAL}.bed"
+# ---- 2. Processing Chunks ----
+log_info "[2/3] Processing chunks with Multi-sample HaplotypeCaller..."
+
+CHUNK_GATHER_ARGS=""
+
+for i in "${!INTERVAL_FILES[@]}"; do
+    INTERVAL="${INTERVAL_FILES[$i]}"
+    INTERVAL_BED="${INTERVAL}.bed"
+    if [ ! -f "$INTERVAL_BED" ]; then
+        awk -v OFS='\t' '!/^@/ {print $1, $2-1, $3}' "$INTERVAL" > "$INTERVAL_BED"
     fi
-done
 
+    ID=$(printf "%04d" $i) # 0001, 0002...
+    CHUNK_FINAL="gatk_tmp/chunks/${OUTPREFIX}.${ID}.vcf.gz"
+    CHUNK_LOG="gatk_tmp/logs/chunk.${ID}.log"
 
-# ---- 2/4 BAM processing ----
-log_info "[2/4] BAM processing..."
-for BAM in "${BAM_ARRAY[@]}"; do
-    NAME=$(basename "$BAM" | cut -d. -f1)
-    FINAL_GVCF="gatk_tmp/gvcfs/${NAME}.g.vcf.gz"
-    SAMPLE_LOG="gatk_tmp/logs/${NAME}.main.log"
+    CHUNK_GATHER_ARGS="${CHUNK_GATHER_ARGS} -I $CHUNK_FINAL"
 
-    # Skip if sample GVCF already exists
-    if [ -f "$FINAL_GVCF" ] && [ -f "${FINAL_GVCF}.tbi" ]; then
-        log_info "${NAME}: GVCF already exists."
-        ALL_SAMPLE_GVCFS+=("-V" "$FINAL_GVCF")
+    # Skip if chunk already exists
+    if [ -f "$CHUNK_FINAL" ] && [ -f "${CHUNK_FINAL}.tbi" ]; then
+        log_info "Chunk $ID exists."
         continue
     fi
 
-    # Check sex
-    IS_MALE=false
-    for M in "${MALES_ARRAY[@]}"; do
-        if [[ "$M" == "$NAME" ]]; then IS_MALE=true; break; fi
-    done
-
-    if [ "$IS_MALE" = true ]; then log_info "${NAME}: MALE"; else log_info "${NAME}: FEMALE"; fi
-
-    CHUNK_FILES_ARGS=""
-
-    for i in "${!INTERVAL_FILES[@]}"; do
-        INTERVAL="${INTERVAL_FILES[$i]}"
-        INTERVAL_BED="${INTERVAL}.bed"
-        ID=$(printf "%04d" $i) # 0001, 0002...
-
-        # Files for this chunk
-        CHUNK_OUT="gatk_tmp/chunks/${NAME}.${ID}.g.vcf.gz"
-        CHUNK_LOG="gatk_tmp/logs/${NAME}.${ID}.log"
-
-        # Collect arguments for future merging
-        CHUNK_FILES_ARGS="${CHUNK_FILES_ARGS} -I $CHUNK_OUT"
-
-        if [ -f "$CHUNK_OUT" ] && [ -f "${CHUNK_OUT}.tbi" ]; then
-            log_info "${NAME}.${ID}: Chunk already exists."
-            continue
-        fi
-
-        (
-            if [ "$IS_MALE" = true ]; then
-                # ---- Logic for MALES ----
-                P1="gatk_tmp/chunks/${NAME}.${ID}.p1.g.vcf.gz"
-                P2="gatk_tmp/chunks/${NAME}.${ID}.p2.g.vcf.gz"
-
-                # Temp interval files for this chunk
-                P1_BED="gatk_tmp/intervals/${NAME}.${ID}.p1.bed"
-                P2_BED="gatk_tmp/intervals/${NAME}.${ID}.p2.bed"
-
-                # 1. Ploidy 1 (Intersection with Haploid regions)
-                bedtools intersect -a "$INTERVAL_BED" -b "$HAPLOID_BED" > "$P1_BED"
-                if [ -s "$P1_BED" ]; then
-                    if [ ! -f "$P1" ] || [ ! -f "${P1}.tbi" ]; then
-                        echo "${NAME}.${ID} | Ploidy 1 processing..."
-                        gatk --java-options "-Xmx${JAVA_MEM}" HaplotypeCaller \
-                            -R "$REF" -I "$BAM" -O "$P1" -ERC GVCF \
-                            --sample-ploidy 1 -L "$P1_BED" >> "$CHUNK_LOG" 2>&1
-                    fi
-                fi
-
-                # 2. Ploidy 2 (Subtraction of Haploid regions = Diploid/PAR)
-                bedtools subtract -a "$INTERVAL_BED" -b "$HAPLOID_BED" > "$P2_BED"
-                if [ -s "$P2_BED" ]; then
-                    if [ ! -f "$P2" ] || [ ! -f "${P2}.tbi" ]; then
-                        gatk --java-options "-Xmx${JAVA_MEM}" HaplotypeCaller \
-                            -R "$REF" -I "$BAM" -O "$P2" -ERC GVCF \
-                            --sample-ploidy 2 -L "$P2_BED" >> "$CHUNK_LOG" 2>&1
-                    fi
-                fi
-
-                # 3. Combine p1 and p2
-                if [ ! -f "$CHUNK_OUT" ] || [ ! -f "${CHUNK_OUT}.tbi" ]; then
-                    if [ -f "$P1" ] && [ -f "$P2" ]; then
-                        gatk --java-options "-Xmx4g" CombineGVCFs \
-                            -R "$REF" -V "$P1" -V "$P2" -O "$CHUNK_OUT" >> "$CHUNK_LOG" 2>&1
-                    elif [ -f "$P1" ]; then
-                        cp "$P1" "$CHUNK_OUT" && cp "${P1}.tbi" "${CHUNK_OUT}.tbi"
-                    elif [ -f "$P2" ]; then
-                        cp "$P2" "$CHUNK_OUT" && cp "${P2}.tbi" "${CHUNK_OUT}.tbi"
-                    else
-                        log_error "No P1 or P2 produced for ${NAME}.${ID}" "$CHUNK_LOG"
-                        exit 1
-                    fi
-                fi
-
-                # Cleanup temps
-                if [ -f "$CHUNK_OUT" ] && [ -f "${CHUNK_OUT}.tbi" ]; then
-                    rm -f "$P1_BED" "$P2_BED" "$P1" "$P1.tbi" "$P2" "$P2.tbi"
-                fi
-
-            else
-                # ---- Logic for FEMALES ----
-                if [ ! -f "$CHUNK_OUT" ] || [ ! -f "${CHUNK_OUT}.tbi" ]; then
-                    gatk --java-options "-Xmx${JAVA_MEM}" HaplotypeCaller \
-                        -R "$REF" -I "$BAM" -O "$CHUNK_OUT" -ERC GVCF \
-                        --sample-ploidy 2 -L "$INTERVAL" >> "$CHUNK_LOG" 2>&1
-                fi
-            fi
-        ) &
-    done
-
-    wait
-
-    log_info "${NAME}: gathering chunks..."
-    if [ ! -f "$FINAL_GVCF" ] || [ ! -f "${FINAL_GVCF}.tbi" ]; then
-        gatk --java-options "-Xmx8g" GatherVcfs \
-            ${CHUNK_FILES_ARGS} \
-            -O "$FINAL_GVCF" \
-            >> "$SAMPLE_LOG" 2>&1
-        gatk IndexFeatureFile -I "$FINAL_GVCF" >> "$SAMPLE_LOG" 2>&1
-    else
-        log_info "${NAME}: final GVCF already exists."
-    fi
-
-    # Cleanup chunks
-    if [ -f "$FINAL_GVCF" ] && [ -f "${FINAL_GVCF}.tbi" ]; then
-        rm -f gatk_tmp/chunks/${NAME}.*.g.vcf.gz*
-        log_info "${NAME}: chunk files cleaned up."
-    fi
-
-    ALL_SAMPLE_GVCFS+=("-V" "$FINAL_GVCF")
-    log_info "${NAME}: Done."
-done
-
-
-# ---- 3/4 Combine and Genotype ----
-log_info "[3/4] Combine and Genotype..."
-GATHER_ARGS=""
-for i in "${!INTERVAL_FILES[@]}"; do
-    INTERVAL="${INTERVAL_FILES[$i]}"
-    ID=$(printf "%04d" $i) # 0001, 0002...
-
-    CHUNK_COMBINED="gatk_tmp/joint_chunks/${OUTPREFIX}.${ID}.combined.g.vcf.gz"
-    CHUNK_FINAL="gatk_tmp/joint_chunks/${OUTPREFIX}.${ID}.vcf.gz"
-    CHUNK_LOG="gatk_tmp/logs/joint_call.${ID}.log"
-
-    # Save name of file for final GatherVcfs
-    GATHER_ARGS="${GATHER_ARGS} -I ${CHUNK_FINAL}"
-
     (
-        # 1. CombineGVCFs
-        if [ ! -f "$CHUNK_COMBINED" ] || [ ! -f "${CHUNK_COMBINED}.tbi" ]; then
-            gatk --java-options "-Xmx8g" CombineGVCFs \
-                -R "$REF" \
-                "${ALL_SAMPLE_GVCFS[@]}" \
-                -L "$INTERVAL" \
-                -O "$CHUNK_COMBINED" >> "$CHUNK_LOG" 2>&1
+        P1_BED="gatk_tmp/intervals/${ID}.p1.bed"
+        P2_BED="gatk_tmp/intervals/${ID}.p2.bed"
+
+        P1_VCF="gatk_tmp/chunks/${ID}.p1.vcf.gz"     # Merged (Male+Female) Haploid part
+        P1_M_VCF="gatk_tmp/chunks/${ID}.p1.m.vcf.gz" # Male Haploid part
+        P1_F_VCF="gatk_tmp/chunks/${ID}.p1.f.vcf.gz" # Female Haploid part
+
+        P2_VCF="gatk_tmp/chunks/${ID}.p2.vcf.gz"     # All Diploid part
+
+        # P1 (Ploidy 1 regions) = Intersection with Haploid BED
+        bedtools intersect -a "$INTERVAL_BED" -b "$HAPLOID_BED" > "$P1_BED"
+        # P2 (Ploidy 2 regions) = Subtraction of Haploid BED
+        bedtools subtract -a "$INTERVAL_BED" -b "$HAPLOID_BED" > "$P2_BED"
+
+        LISTS_TO_MERGE=()
+
+        # --- Ploidy 1 ---
+        if [ -s "$P1_BED" ]; then
+            # For P1 we need to run Males (Ploidy 1) and Females (Ploidy 2) separately
+
+            # A. Males (Ploidy 1)
+            if [ ${#MALE_BAMS_ARGS[@]} -gt 0 ]; then
+                gatk --java-options "-Xmx${JAVA_MEM}" HaplotypeCaller \
+                    -R "$REF" "${MALE_BAMS_ARGS[@]}" -O "$P1_M_VCF" \
+                    --sample-ploidy 1 -L "$P1_BED" >> "$CHUNK_LOG" 2>&1
+            fi
+
+            # B. Females (Ploidy 2)
+            if [ ${#FEMALE_BAMS_ARGS[@]} -gt 0 ]; then
+                gatk --java-options "-Xmx${JAVA_MEM}" HaplotypeCaller \
+                    -R "$REF" "${FEMALE_BAMS_ARGS[@]}" -O "$P1_F_VCF" \
+                    --sample-ploidy 2 -L "$P1_BED" >> "$CHUNK_LOG" 2>&1
+            fi
+
+            # C. Merge Males and Females for P1
+            if [ -f "$P1_M_VCF" ] && [ -f "$P1_F_VCF" ]; then
+                # Используем bcftools для слияния по самплам
+                bcftools merge -O z -o "$P1_VCF" "$P1_M_VCF" "$P1_F_VCF" >> "$CHUNK_LOG" 2>&1
+                tabix -p vcf "$P1_VCF"
+            elif [ -f "$P1_M_VCF" ]; then
+                mv "$P1_M_VCF" "$P1_VCF" && mv "${P1_M_VCF}.tbi" "${P1_VCF}.tbi"
+            elif [ -f "$P1_F_VCF" ]; then
+                mv "$P1_F_VCF" "$P1_VCF" && mv "${P1_F_VCF}.tbi" "${P1_VCF}.tbi"
+            fi
+
+            if [ -f "$P1_VCF" ]; then
+                LISTS_TO_MERGE+=("-I" "$P1_VCF")
+            fi
+
+            # rm -f "$P1_M_VCF" "$P1_F_VCF" "${P1_M_VCF}.tbi" "${P1_F_VCF}.tbi"
         fi
 
-        # 2. GenotypeGVCFs
-        if [ ! -f "$CHUNK_FINAL" ] || [ ! -f "${CHUNK_FINAL}.tbi" ]; then
-            gatk --java-options "-Xmx8g" GenotypeGVCFs \
-                -R "$REF" \
-                -V "$CHUNK_COMBINED" \
-                -L "$INTERVAL" \
-                -O "$CHUNK_FINAL" \
-                -G StandardAnnotation >> "$CHUNK_LOG" 2>&1
+        # --- Ploidy 2 ---
+        if [ -s "$P2_BED" ]; then
+            gatk --java-options "-Xmx${JAVA_MEM}" HaplotypeCaller \
+                -R "$REF" "${ALL_BAMS_ARGS[@]}" -O "$P2_VCF" \
+                --sample-ploidy 2 -L "$P2_BED" >> "$CHUNK_LOG" 2>&1
+
+            if [ -f "$P2_VCF" ]; then
+                LISTS_TO_MERGE+=("-I" "$P2_VCF")
+            fi
         fi
 
-        sleep 60
+        gatk --java-options "-Xmx4g" GatherVcfs \
+            "${LISTS_TO_MERGE[@]}" \
+            -O "$CHUNK_FINAL" >> "$CHUNK_LOG" 2>&1
+        gatk IndexFeatureFile -I "$CHUNK_FINAL" >> "$CHUNK_LOG" 2>&1
+
+        # rm -f "$P1_BED" "$P2_BED" "$P1_VCF" "${P1_VCF}.tbi" "$P2_VCF" "${P2_VCF}.tbi"
 
     ) &
 
@@ -235,19 +186,16 @@ done
 
 wait
 
-
-# ---- 4/4 Gather all chunks into final VCF ----
-log_info "[4/4] Gather all chunks into final VCF..."
+# ---- 3. Gather Final VCF ----
+log_info "[3/3] Gather all chunks..."
 FINAL_VCF="${OUTPREFIX}.vcf.gz"
 
-if [ ! -f "$FINAL_VCF" ] || [ ! -f "${FINAL_VCF}.tbi" ]; then
+if [ ! -f "$FINAL_VCF" ]; then
     gatk --java-options "-Xmx8g" GatherVcfs \
-        $GATHER_ARGS \
+        $CHUNK_GATHER_ARGS \
         -O "$FINAL_VCF"
-
     gatk IndexFeatureFile -I "$FINAL_VCF"
+    log_info "Done! Result: $FINAL_VCF"
 else
     log_info "Final VCF already exists."
 fi
-
-log_info "Done! Result: $FINAL_VCF"
