@@ -1,11 +1,10 @@
 #!/bin/bash
-# Usage:
-# $TOOLS/bashare/assembly_stats.sh FASTA NUMBER_OF_CHROMOSOME
+set -euo pipefail
+
+source "$TOOLS/bashare/lib/log_functions.sh"
 
 FASTA=$1
 NUMBER_OF_CHROMOSOME=$2
-
-source $(conda info --base)/etc/profile.d/conda.sh
 
 if [[ $# -ne 2 ]]; then
     echo "Usage: $0 FASTA NUMBER_OF_CHROMOSOME"
@@ -18,7 +17,7 @@ if [[ "$FASTA" == *.gz ]]; then
 fi
 
 if [[ ! -f "${FASTA}.fai" ]]; then
-    conda run -n varcall samtools faidx "$FASTA"
+    samtools faidx "$FASTA"
 fi
 
 FASTA_PREFIX=${FASTA%.*}
@@ -28,3 +27,5 @@ cat ${FASTA_PREFIX}.len | awk '{print $1}' | head -n ${NUMBER_OF_CHROMOSOME} > $
 cat ${FASTA_PREFIX}.len | awk '{print $1}' | head -n ${NUMBER_OF_CHROMOSOME} > ${FASTA_PREFIX}.orderlist
 cat ${FASTA_PREFIX}.whitelist | awk '{print $1"\t"$1}' | head -n ${NUMBER_OF_CHROMOSOME} > ${FASTA_PREFIX}.syn
 cat ${FASTA_PREFIX}.syn | awk '{print $2}' | head -n ${NUMBER_OF_CHROMOSOME} > ${FASTA_PREFIX}.renamelist
+
+log_info "Done!"
