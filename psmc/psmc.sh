@@ -216,7 +216,7 @@ else
     log_info "Use UNmasked FQ: ${INPUT_FQ}"
 fi
 
-consensus_remove_scaffold.py -i "${INPUT_FQ}" -o "${NO_CHRX_DIR}/${SAMPLE}.no_ChrX.fq.gz" -s "${CHRX_ID}"
+consensus_remove_scaffold.py -i "${INPUT_FQ}" -o "${NO_CHRX_DIR}/${SAMPLE}.no_ChrX.fq.gz" -s ${CHRX_ID}
 
 log_info "${SAMPLE} | Fasta-like consensus file preparation"
 fq2psmcfa -q20 "${NO_CHRX_DIR}/${SAMPLE}.no_ChrX.fq.gz" > "${NO_CHRX_DIR}/${SAMPLE}.no_ChrX.diploid.psmcfa"
