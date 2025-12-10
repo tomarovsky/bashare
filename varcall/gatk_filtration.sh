@@ -34,7 +34,7 @@ gatk --java-options "-Xmx8g" VariantFiltration \
     -R ${ASSEMBLY} \
     -V ../${VCF} \
     -O ${PREFIX}.marked.vcf.gz \
-    --filter-expression "QD < 2" --filter-name "QD20" \
+    --filter-expression "QD < 2.0" --filter-name "QD2" \
     --filter-expression "SOR > 3.0" --filter-name "SOR3" \
     --filter-expression "vc.isSNP() && FS > 60.0" --filter-name "SNP_FS60" \
     --filter-expression "vc.isIndel() && FS > 200.0" --filter-name "INDEL_FS200" \
