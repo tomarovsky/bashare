@@ -246,4 +246,4 @@ if $ROUNDS; then
     rm ${NO_CHRX_DIR}/round.*.txt
 fi
 
-log_info "$(date) | DONE | ${SAMPLE} | Gen=${GEN_TIME} | Mu=${MU_RATE} | Masking=$([ -n "$MASK_FILE" ] && echo Yes || echo No) | Rounds=${ROUNDS}"
+log_info "Done! | ${SAMPLE} | Gen=${GEN_TIME} | Mu=${MU_RATE} | Masking=$([ -n "$MASK_FILE" ] && echo Yes || echo No) | Rounds=${ROUNDS}"
