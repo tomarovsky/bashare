@@ -1,0 +1,12 @@
+name: PSMC
+channels:
+    - bioconda
+    - conda-forge
+    - mahajrod
+dependencies:
+    - routoolpa
+    - mace
+    - mavr
+    - parallel
+    - gnuplot
+    - samtools=0.1.19
