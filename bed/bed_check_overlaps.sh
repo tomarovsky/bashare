@@ -1,4 +1,8 @@
 #!/bin/bash
+set -euo pipefail
+
+source "$TOOLS/bashare/lib/log_functions.sh"
+
 
 if [ "$#" -ne 1 ]; then
     echo "Usage: $0 BED_FILE"
@@ -14,9 +18,7 @@ ORIG_LINES=$(wc -l < "$BED_FILE")
 MERGED_LINES=$(bedtools merge -i <(sort -k1,1 -k2,2n "$BED_FILE") | wc -l)
 
 if [[ "$ORIG_LINES" -eq "$MERGED_LINES" ]]; then
-    echo "No overlaps detected"
-    exit 0
+    log_info "No overlaps detected"
 else
-    echo "Overlapping regions found!"
-    exit 1
+    log_warning "Overlapping regions found!"
 fi
