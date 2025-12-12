@@ -1,6 +1,7 @@
 #!/bin/bash
-
 set -euo pipefail
+
+source "$TOOLS/bashare/lib/log_functions.sh"
 
 if [[ "$#" -ne 1 ]]; then
     echo "Usage: $0 <file_with_paths>"
@@ -9,13 +10,13 @@ fi
 
 PATHS_FILE="$1"
 
-echo "----------------"
+log_info "----------------"
 while IFS= read -r path
 do
     if [[ -e "$path" ]]; then
-        echo "Exist: $path"
+        log_info "Exist: $path"
     else
-        echo "NOT exist: $path"
+        log_warning "NOT exist: $path"
     fi
 done < "$PATHS_FILE"
-echo "----------------"
+log_info "----------------"

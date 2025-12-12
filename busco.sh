@@ -1,6 +1,6 @@
 #!/bin/bash
-
 set -euo pipefail
+
 
 if [ $# -ne 3 ]; then
     echo "Usage: $0 <fasta_file> <orthodb> <threads>"

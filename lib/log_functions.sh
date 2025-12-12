@@ -26,7 +26,7 @@ log_message() {
             ;;
         WARNING)
             color="${YELLOW}"
-            output_stream="2"
+            output_stream="1"
             ;;
         ERROR)
             color="${RED}"
