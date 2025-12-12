@@ -1,9 +1,10 @@
 #!/bin/bash
-# Total length of regions in a BED file
+set -euo pipefail
 
 BED_FILE="$1"
 
-if [[ -z "$BED_FILE" ]]; then
+if [[ $# -ne 1 ]]; then
+    echo "Total length of regions in a BED file"
     echo "Usage: $0 input.bed"
     exit 1
 fi
