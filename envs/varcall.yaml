@@ -11,3 +11,20 @@ dependencies:
     - bioconda::htslib
     - bioconda::bwa
     - bioconda::mosdepth
+    - python=3.8
+    - setuptools
+    - numpy
+    - pandas
+    - scipy
+    - matplotlib
+    - seaborn
+    - scikit-learn
+    - biopython
+    - ete3
+    - scikit-allel
+    - statsmodels
+    - bcbio-gff
+    - xmltodict
+    - xlsxwriter
+    - pyparsing
+    - venn
