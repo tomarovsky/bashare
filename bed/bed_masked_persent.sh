@@ -29,6 +29,6 @@ REGIONS_LEN=$(filter_scaffolds < "$BED_FILE" | \
               awk '{sum += $3 - $2} END {print sum}')
 
 MASKED_PERCENT=$(awk -v total="$GENOME_LEN" -v covered="$REGIONS_LEN" \
-    'BEGIN { printf "%.2f%\n", (covered/total)*100 }')
+    'BEGIN { printf "%.2f\n", (covered/total)*100 }')
 
 echo -e "$GENOME_LEN\t$REGIONS_LEN\t$MASKED_PERCENT"
