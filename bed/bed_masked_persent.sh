@@ -4,6 +4,7 @@ set -euo pipefail
 if [[ $# -lt 2 ]]; then
     echo "Calculate genome coverage by BED"
     echo "Usage: $0 input.bed genome.len [exclude_scaffold1 exclude_scaffold2 ...]"
+    echo "Output: genome_length\tcovered_length\tmasked_percentage"
     exit 1
 fi
 
