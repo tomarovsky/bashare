@@ -1,6 +1,8 @@
 #!/bin/bash
 set -euo pipefail
 
+source "$TOOLS/bashare/lib/log_functions.sh"
+
 
 if [ $# -ne 3 ]; then
     echo "Usage: $0 <fasta_file> <orthodb> <threads>"
@@ -17,6 +19,7 @@ mkdir -p "${SPECIES_NAME}"
 cd "${SPECIES_NAME}"
 
 # Run BUSCO
+log_info "${SPECIES_NAME} | Running BUSCO..."
 busco \
     --metaeuk \
     -m genome \
@@ -36,3 +39,5 @@ rm -r run_*
 mv full_table.tsv "full_table_${SPECIES_NAME}.tsv"
 mv missing_busco_list.tsv "missing_busco_list_${SPECIES_NAME}.tsv"
 mv short_summary.txt "short_summary_${SPECIES_NAME}.txt"
+
+log_info "${SPECIES_NAME} | Done!"
