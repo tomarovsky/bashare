@@ -30,6 +30,7 @@ echo "$(date) | VCF masking"
 bedtools intersect -header -v -a ${PREFIX}.filt.vcf.gz -b ${MASK} | bgzip -c > ${PREFIX}.filt.mask.vcf.gz
 
 echo "$(date) | Sample separation"
+# --min-ac 1 – to remove reference sites and missing genotypes
 bcftools query -l $PREFIX.filt.mask.vcf.gz | parallel -j 6 '
     SAMPLE={}
     echo "Sample: ${SAMPLE}"
