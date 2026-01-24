@@ -4,7 +4,7 @@ set -euo pipefail
 source "$TOOLS/bashare/lib/log_functions.sh"
 
 if [[ "$#" -ne 1 ]]; then
-    echo "Usage: $0 <file_with_paths>"
+    echo "Usage: $0 <file_with_paths_per_line>"
     exit 1
 fi
 
