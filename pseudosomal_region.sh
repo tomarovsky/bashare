@@ -12,8 +12,6 @@ if [[ -z "$MOSDEPTH_BEDGZ" || -z "$SCAFFOLD_NAME" ]]; then
     exit 1
 fi
 
-source $(conda info --base)/etc/profile.d/conda.sh
-conda activate py38
 
 DIR=$(dirname "$MOSDEPTH_BEDGZ")
 BASENAME=$(basename "$MOSDEPTH_BEDGZ")
