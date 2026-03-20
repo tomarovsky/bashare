@@ -5,4 +5,5 @@ channels:
     - nodefaults
 dependencies:
     - snakemake
+    - snakemake-executor-plugin-cluster-generic
     - snakefmt
